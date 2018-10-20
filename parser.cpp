@@ -1,6 +1,6 @@
 /* Quack parser driver
- * Author: Andrew Letz
- * Acknowledgements: Michal Young for some code from reflex-bison-ast repo
+ * Author: Nate Letz
+ * Thanks to Michal Young for skeleton
  */ 
 
 #include "lex.yy.h"
@@ -9,21 +9,13 @@
 
 class Driver {
 public:
-
-    /* Constructor
-        reflex::Input : used to create the lexer, which feeds tokens to the parser 
-        parser        : defined in  quack.tab.hxx & cxx. arguments defined in quack.yxx.
-            lexer     : used to override the default lexer in bison (yylex) when parsing
-            &root     : given to the parser and initialized to the root ASTNode when parsing.
-                        used to pass the ASTNode back here.
-    */
+    /* Constructor */
     explicit Driver(reflex::Input in) : lexer(in), parser(new yy::parser(lexer)) {}
 
-    /* Deconstructor */
+    /* Destructor */
     virtual ~Driver() { delete parser; }
 
-    /* parse: attempts to parse the given program (lexed by input lexer).
-       root is an ASTNode ** in quack.yxx, used to pass the root back here */
+    /* Main parse function */
     void parse() {
         // parser->set_debug_level(1); // 0 = no debugging, 1 = full tracing
 
