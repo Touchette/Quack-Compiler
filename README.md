@@ -15,7 +15,7 @@ The lexer is written in RE\Flex: it tokenizes the Quack language appropriately f
 <COMMENT>[*][/]  { start(INITIAL); }
 ```
 
-These regular expressions will, upon seeing `/*`, enter a so-called "scanner state" in which only the rules preceded by `<COMMENT>` are followed. When the scanner reads `[^*]*` (0 or more of anything that isn't an asterisk), it discards what it read (as a comment should do). When the scacnner encounters `[*][^/]` (an asterisk followed by anything that is not /), it also throws it away, as the comment has not ended yet. Finally, upon finding `*/`, which closes a comment, the scanner returns to its initial start state with `start(INITIAL);`. 
+These regular expressions will, upon seeing `/*`, enter a so-called "scanner state" in which only the rules preceded by `<COMMENT>` are followed. When the scanner reads `[^*]*` (0 or more of anything that isn't an asterisk), it discards what it read (as a comment should do). When the scanner encounters `[*][^/]` (an asterisk followed by anything that is not /), it also throws it away, as the comment has not ended yet. Finally, upon finding `*/`, which closes a comment, the scanner returns to its initial start state with `start(INITIAL);`. 
 
 ## Parser ##
 ### quack.yxx, parser.cpp, names.h ###
@@ -35,7 +35,7 @@ This production is entered from the following "hierarchy": program -> classes ->
 - Match an opening paren `'('`, which will contain the arguments to the function
 - Match all the arguments to the method, the rules for which are contained in another non-terminal `formal_args`
 - Match the closing paren `')'`
-- Finally match the method statement `statement_block`, another non-terminal which will contain the actual code that the function executes.
+- Finally match the method statement `statement_block`, another non-terminal which will contain the actual code that the function executes
 
 A similar pattern can be seen in the other option for a method call, wherein a `':'` (colon) is matched in order to serve as an initializer with another `IDENT` token.
 
