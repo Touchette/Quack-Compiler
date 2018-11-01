@@ -1,12 +1,11 @@
-#ifndef ASTNODE_H
-#define ASTNODE_H
+
 
 #include <map>
 #include <string>
 #include <vector>
 #include <iostream>
 
-enum Type { 
+enum Type {
 		/* -~-~-~-~- Begin NonTerminal Types -~-~-~-~- */
 		PROGRAM, BLOCK,
 		CLASSES, CLASS,
@@ -28,6 +27,8 @@ class ASTNode {
 
 	/* -~-~-~- Constructor, Destructor -~-~-~- */
 	ASTNode(Type type) : type(type) { };
+	ASTNode(Type type, int intLiteral) : type(type), identInt(intLiteral) { };
+	ASTNode(Type type, std::string strLiteral) : type(type), identStr(strLiteral) { };
 	virtual ~ASTNode() {};
 
 	/* -~-~-~- Inserting & Getting Data -~-~-~- */
@@ -46,6 +47,8 @@ class ASTNode {
 
   private:
   	std::vector<Type> order;
+	int identInt;
+	std::string identStr;
 };
 
 class AST_print_context {
