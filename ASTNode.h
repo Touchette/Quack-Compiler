@@ -23,6 +23,14 @@ enum Type {
 };
 
 namespace AST {
+	class AST_print_context {
+	  public:
+		int indent_;
+		AST_print_context() : indent_{0} {};
+		void indent() { ++indent_; }
+		void dedent() { --indent_; }
+	};
+
 	class ASTNode {
 	  public:
 		/* -~-~-~- Data Members -~-~-~- */
@@ -30,8 +38,8 @@ namespace AST {
 		std::map<Type, std::vector<ASTNode*> > children;
 		std::vector<Type> order;
 
-		std::string name;
-		int value;
+		std::string identStr;
+		int identInt;
 
 		/* -~-~-~- Constructor, Destructor -~-~-~- */
 		ASTNode(Type type) : type(type) { };
@@ -40,7 +48,7 @@ namespace AST {
 		virtual ~ASTNode() {};
 
 		/* -~-~-~- Inserting & Getting Data -~-~-~- */
-		void insert(Type type, ASTNode *node);
+		void insert(ASTNode *node);
 		ASTNode *get(Type type);
 		std::vector<ASTNode *> getSeq(Type type);
 
@@ -52,14 +60,6 @@ namespace AST {
 		void json_head  (std::ostream &out, AST_print_context &ctx, std::string node_kind);
 		void json_close (std::ostream &out, AST_print_context &ctx);
 		void json_indent(std::ostream &out, AST_print_context &ctx);
-	};
-
-	class AST_print_context {
-	  public:
-		int indent_;
-		AST_print_context() : indent_{0} {};
-		void indent() { ++indent_; }
-		void dedent() { --indent_; }
 	};
 }
 

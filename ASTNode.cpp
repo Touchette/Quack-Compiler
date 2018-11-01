@@ -39,7 +39,6 @@ namespace AST {
             printf("Insert: not in order, shove it in the order vec\n");
             order.push_back(node->type);
         }
-        std::cout << std::endl;
     }
 
     ASTNode * ASTNode::get(Type type) {
@@ -100,5 +99,4 @@ namespace AST {
     //         out << "    ";
     //     }
     // }
-
 }
