@@ -39,10 +39,10 @@ class ASTNode {
 		void json(std::ostream &out, AST_print_context &ctx);
 
 		/* -~-~-~- JSON printing methods -~-~-~- */
-        void json_child (std::ostream &out, AST_print_context &ctx, std::string field, ASTNode &child, char sep=',');
-        void json_head  (std::ostream &out, AST_print_context &ctx, std::string node_kind);
-        void json_close (std::ostream &out, AST_print_context &ctx);
-        void json_indent(std::ostream &out, AST_print_context &ctx);
+		void json_child (std::ostream &out, AST_print_context &ctx, std::string field, ASTNode &child, char sep=',');
+		void json_head  (std::ostream &out, AST_print_context &ctx, std::string node_kind);
+		void json_close (std::ostream &out, AST_print_context &ctx);
+		void json_indent(std::ostream &out, AST_print_context &ctx);
 
     private:
     	std::vector<Type> order;
