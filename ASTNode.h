@@ -24,7 +24,7 @@ class ASTNode {
   public:
 	/* -~-~-~- Data Members -~-~-~- */
 	Type type;
-	std::map<Type, std::vector<ASTNode *>> children;
+	std::map<Type, std::vector<ASTNode *> > children;
 
 	/* -~-~-~- Constructor, Destructor -~-~-~- */
 	ASTNode(Type type) : type(type) { };
