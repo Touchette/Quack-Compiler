@@ -19,7 +19,7 @@ enum Type {
 		/* -~-~-~-~- Begin Identifier Types -~-~-~-~- */
 		NAME
 };
-
+`
 class ASTNode {
   public:
 	/* -~-~-~- Data Members -~-~-~- */
@@ -32,7 +32,7 @@ class ASTNode {
 
 	/* -~-~-~- Inserting & Getting Data -~-~-~- */
 	void insert(Type type, ASTNode *node);
-	ASTNode * get(Type type);
+	ASTNode *get(Type type);
 	std::vector<ASTNode *> getSeq(Type type);
 
 	/* -~-~-~- Main JSON method -~-~-~- */
