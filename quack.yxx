@@ -30,6 +30,8 @@
 %union {
     int   num;
     char* str;
+	/* - */
+	ASTNode::ASTNode *node;
 }
 
 /* -~-~-~- TOKENS -~-~-~- */
@@ -79,17 +81,17 @@ class
 		;
 
 class_signature
-		: CLASS IDENT '(' formal_args ')' { }
-		| CLASS IDENT '(' formal_args ')' EXTENDS IDENT { }
+		: CLASS ident '(' formal_args ')' { }
+		| CLASS ident '(' formal_args ')' EXTENDS ident { }
 		;
 
 formal_args
-		: IDENT ':' IDENT formal_args_extra { }
+		: ident ':' ident formal_args_extra { }
 		| /* empty */
 		;
 
 formal_args_extra
-		: formal_args_extra ',' IDENT ':' IDENT { }
+		: formal_args_extra ',' ident ':' ident { }
 		| /* empty */
 		;
 
@@ -98,8 +100,8 @@ class_body
 		;
 
 method
-		: DEF IDENT '(' formal_args ')' statement_block { }
-		| DEF IDENT '(' formal_args ')' ':' IDENT statement_block { }
+		: DEF ident '(' formal_args ')' statement_block { }
+		| DEF ident '(' formal_args ')' ':' ident statement_block { }
 		;
 
 statement_block
@@ -111,7 +113,7 @@ statement
 		| IF r_expr statement_block statement_elifs ELSE statement_block { }
 		| WHILE r_expr statement_block { }
 		| l_expr '=' r_expr ';' { }
-		| l_expr ':' IDENT '=' r_expr ';' { }
+		| l_expr ':' ident '=' r_expr ';' { }
 		| r_expr ';' { }
 		| RETURN ';' { }
 		| RETURN r_expr ';' { }
@@ -143,13 +145,17 @@ r_expr
 		| r_expr '/' r_expr { }
 		| r_expr '*' r_expr { }
 		| '(' r_expr ')' { }
-		| r_expr '.' IDENT '(' actual_args ')' { }
-		| IDENT '(' actual_args ')' { }
+		| r_expr '.' ident '(' actual_args ')' { }
+		| ident '(' actual_args ')' { }
 		;
 
 l_expr
+		: ident { }
+		| r_expr '.' ident { }
+		;
+
+ident
 		: IDENT { }
-		| r_expr '.' IDENT { }
 		;
 
 actual_args
@@ -166,7 +172,7 @@ typecase
 		: TYPECASE r_expr '{' type_alternative '}' { }
 
 type_alternative
-		: IDENT ':' IDENT statement_block { }
+		: ident ':' ident statement_block { }
 		| /* empty */
 		;
 
