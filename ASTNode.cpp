@@ -7,12 +7,6 @@
 #include <algorithm>
 #include "ASTNode.h"
 
-std::set<Type> HeadTypes = {
-        PROGRAM, FORMAL_ARG, METHOD, ASSIGN, RETURN, IF, 
-        TYPECASE, TYPE_ALTERNATIVE, LOAD, IDENT, CLASS, 
-        CALL, CONSTRUCTOR, INTCONST, STRCONST, BINOP
-};
-
 std::set<Type> SeqTypes = {
         BLOCK, CLASSES, FORMAL_ARGS, METHODS, 
         TYPE_ALTERNATIVES, ACTUAL_ARGS
