@@ -7,20 +7,7 @@
 #include <sstream>
 #include <algorithm>
 #include <iostream>
-
-enum Type {
-		/* -~-~-~-~- Begin NonTerminal Types -~-~-~-~- */
-		PROGRAM, BLOCK,
-		CLASSES, CLASS,
-		METHODS, METHOD, CONSTRUCTOR, CALL,
-		FORMAL_ARGS, FORMAL_ARGS_EXTRA, ACTUAL_ARGS_EXTRA,
-		ASSIGN, RETURN, BINOP, AND, OR, DOT, LOAD, IF, WHILE,
-		L_EXPR, IDENT, INTCONST, STRCONST,
-		TYPECASE, TYPE_ALTERNATIVE, TYPE_ALTERNATIVE_EXTRA,
-		LEAF,
-		/* -~-~-~-~- Begin Identifier Types -~-~-~-~- */
-		NAME
-};
+#include "ASTEnum.h"
 
 namespace AST {
 	class AST_print_context {
@@ -58,8 +45,9 @@ namespace AST {
 		/* -~-~-~- JSON printing methods -~-~-~- */
 		void json_child (std::ostream &out, AST_print_context &ctx, std::string field, ASTNode &child, char sep=',');
 		void json_head  (std::ostream &out, AST_print_context &ctx, std::string node_kind);
-		void json_close (std::ostream &out, AST_print_context &ctx);
 		void json_indent(std::ostream &out, AST_print_context &ctx);
+		void json_close (std::ostream &out, AST_print_context &ctx);
+		void jsonSeq    (std::ostream &out, AST_print_context &ctx);
 	};
 }
 
