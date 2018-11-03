@@ -1,3 +1,9 @@
+#
+# Makefile for building scanner.  You may prefer to use cmake, especially
+# if you use CLion.  I don't know cmake well enough to give you a good
+# portable CMakelists.txt
+#
+# Local tool paths and commands  (Varies by installation)
 CCOPTS = -L /usr/local/lib
 REFLEX_LIB = /usr/local/lib/libreflex.a
 REFLEX_INCLUDE = /usr/local/include/reflex
@@ -36,3 +42,4 @@ clean:
 	rm -f lexer parser testast
 	rm -f quack.tab.hxx quack.tab.cxx
 	rm -f stack.hh position.hh location.hh
+

@@ -3,33 +3,27 @@
 
 #include <set>
 
-enum Type {
-        /* -~-~-~-~- Begin NonTerminal Types -~-~-~-~- */
-        PROGRAM, BLOCK,
-        CLASSES, CLASS,
-        METHODS, METHOD, CONSTRUCTOR, CALL,
-        FORMAL_ARGS, FORMAL_ARGS_EXTRA, ACTUAL_ARGS_EXTRA,
-        ASSIGN, RETURN, BINOP, AND, OR, DOT, LOAD, IF, WHILE,
-        L_EXPR, IDENT, INTCONST, STRCONST,
-        TYPECASE, TYPE_ALTERNATIVE, TYPE_ALTERNATIVE_EXTRA,
-        LEAF,
-        /* -~-~-~-~- Begin Identifier Types -~-~-~-~- */
-        NAME
-};
+enum Type {   
+                // Non-Terminal Node Types (And Some Extras)
+                PROGRAM, BLOCK,
+                CLASSES, CLASS,
+                METHODS, METHOD, CONSTRUCTOR, CALL,
+                FORMAL_ARGS, FORMAL_ARGS_EXTRA, ACTUAL_ARGS_EXTRA, ACTUAL_ARGS,
+                ASSIGN, RETURN, BINOP, AND, OR, NOT, DOT, LOAD, IF,
+                L_EXPR, IDENT, INTCONST, STRCONST, WHILE, 
+                TYPECASE, TYPE_ALTERNATIVE,  TYPE_ALTERNATIVES,
+            };
 
 static const char * TypeString[] = {   
-        /* -~-~-~-~- Begin NonTerminal Types -~-~-~-~- */
-        "Program", "block_",
-        "classes_", "class",
-        "methods_", "Method", "constructor", "call",
-        "formal_args", "formal_args_extra_", "actual_args_extra",
-        "assign", "return", "binop_", "and_", "or_", "dot_", "load", "if", "while",
-        "l_expr_", "ident", "intConst", "strConst",
-        "typecase", "type_alternative",  "type_alternative_extra_",
-        "leaf",
-        /* -~-~-~-~- Begin Identifier Types -~-~-~-~- */
-        "name_"
-};
+                // Nonterminal Node Types (And Some Extras)
+                "program_", "block_",
+                "classes_", "class_",
+                "methods_", "method_", "constructor_", "call_",
+                "formal_arg_", "formal_args_", "actual_args_extra_", "actual_args_",
+                "assign_", "return_", "binop_", "and_", "or_", "not_", "dot_", "load_", "if_",
+                "l_expr_", "ident_", "intconst_", "strconst_", "while_", 
+                "typecase_", "type_alternative_",  "type_alternatives_",
+            };
 
 extern std::set<Type> SeqTypes;
 extern bool isSeqType(Type type);
