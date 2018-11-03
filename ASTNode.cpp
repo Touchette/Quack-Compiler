@@ -73,40 +73,6 @@ namespace AST {
         }
     }
 
-    /* ================================ */
-    /* -~-~-~- Main JSON method -~-~-~- */
-    /* ================================ */
-
-    void ASTNode::json(std::ostream &out, AST_print_context &ctx) {
-        if (isSeqType(this->type)) {
-            jsonSeq(out, ctx);
-        } else {
-            json_head(typeString(this->type), out, ctx);
-            if (!this->name.empty()) {
-                out << "\"text_\" : \"" << this->name << "\"";
-            } else if (this->value) {
-                out << "\"value_\" : \"" << this->value << "\"";
-            }
-
-            auto sep = "";
-            for (Type t : this->order) {
-                std::vector<ASTNode*> subchildren = this->getSeq(t);
-                for (ASTNode* node : subchildren) {
-                    node->json(out, ctx);
-                    std::cout << "Here\n";
-                    if (!node->name.empty()) {
-                        std::cout << "Reached\n";
-                        out << "\"text_\" : \"" << node->name << "\"";
-                    } else if (node->value) {
-                        out << "\"value_\" : \"" << node->value << "\"";
-                    }
-                }
-            }
-            json_close(out, ctx);
-        }
-    }
-
-
     /* ===================================== */
     /* -~-~-~- JSON printing methods -~-~-~- */
     /* ===================================== */
@@ -156,4 +122,36 @@ namespace AST {
         json_close(out, ctx);
     }
 
+    /* ================================ */
+    /* -~-~-~- Main JSON method -~-~-~- */
+    /* ================================ */
+
+    void ASTNode::json(std::ostream &out, AST_print_context &ctx) {
+        if (isSeqType(this->type)) {
+            jsonSeq(out, ctx);
+        } else {
+            json_head(typeString(this->type), out, ctx);
+            if (!this->name.empty()) {
+                out << "\"text_\" : \"" << this->name << "\"";
+            } else if (this->value) {
+                out << "\"value_\" : \"" << this->value << "\"";
+            }
+
+            auto sep = "";
+            for (Type t : this->order) {
+                std::vector<ASTNode*> subchildren = this->getSeq(t);
+                for (ASTNode* node : subchildren) {
+                    node->json(out, ctx);
+                    std::cout << "Here\n";
+                    if (!node->name.empty()) {
+                        std::cout << "Reached\n";
+                        out << "\"text_\" : \"" << node->name << "\"";
+                    } else if (node->value) {
+                        out << "\"value_\" : \"" << node->value << "\"";
+                    }
+                }
+            }
+            json_close(out, ctx);
+        }
+    }
 }
