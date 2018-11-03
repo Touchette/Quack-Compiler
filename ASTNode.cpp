@@ -60,7 +60,7 @@ namespace AST {
         std::map<Type, std::vector<ASTNode *> >::iterator it = this->children.find(type);
         if (it != this->children.end()) {
             return it->second.front();
-        } else { return NULL; }
+        } else { }
     }
 
     std::vector<ASTNode *> ASTNode::getSeq(Type type) {
@@ -71,7 +71,7 @@ namespace AST {
         std::map<Type, std::vector<ASTNode *> >::iterator it = children.find(type);
         if (it != this->children.end()) {
             return it->second;
-        } else { return NULL; }
+        } else { }
     }
 
     /* ===================== */

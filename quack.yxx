@@ -160,7 +160,7 @@ r_expr
         | '-' r_expr %prec UMINUS { $$ = new AST::ASTNode(BINOP, "UMINUS"); $$->insert($2); }
         | r_expr '*' r_expr { $$ = new AST::ASTNode(BINOP, "MULT"); $$->insert($1); $$->insert($3); }
         | r_expr '/' r_expr { $$ = new AST::ASTNode(BINOP, "DIV"); $$->insert($1); $$->insert($3); }
-        | r_expr '+' r_expr { $$ = new AST::ASTNode(BINOP, "PLUS"}); $$->insert($1); $$->insert($3); }
+        | r_expr '+' r_expr { $$ = new AST::ASTNode(BINOP, "PLUS"); $$->insert($1); $$->insert($3); }
         | r_expr '-' r_expr { $$ = new AST::ASTNode(BINOP, "MINUS"); $$->insert($1); $$->insert($3); }
         | r_expr EQUALS r_expr { $$ = new AST::ASTNode(BINOP, "EQ"); $$->insert($1); $$->insert($3); }
         | r_expr ATMOST r_expr { $$ = new AST::ASTNode(BINOP, "ATMOST"); $$->insert($1); $$->insert($3); }
