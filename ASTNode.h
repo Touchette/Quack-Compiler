@@ -25,8 +25,8 @@ namespace AST {
 		std::map<Type, std::vector<ASTNode*> > children;
 		std::vector<Type> order;
 
-		std::string identStr;
-		int identInt;
+		std::string name;
+		int value;
 
 		/* -~-~-~- Constructor, Destructor -~-~-~- */
 		ASTNode(Type type) : type(type) { };
@@ -40,11 +40,11 @@ namespace AST {
 		std::vector<ASTNode *> getSeq(Type type);
 
 		/* -~-~-~- JSON printing methods -~-~-~- */
-		void jsonSeq    (std::ostream& out, AST_print_context& ctx);
+		void jsonSeq(std::ostream& out, AST_print_context& ctx);
 		void json_indent(std::ostream& out, AST_print_context& ctx);
-		void json_head  (std::string node_kind, std::ostream& out, AST_print_context& ctx);
-		void json_close (std::ostream& out, AST_print_context& ctx);
-		void json_child (std::string field, ASTNode& child, std::ostream& out, AST_print_context& ctx, char sep=',');
+		void json_head(std::string node_kind, std::ostream& out, AST_print_context& ctx);
+		void json_close(std::ostream& out, AST_print_context& ctx);
+		void json_child(std::string field, ASTNode& child, std::ostream& out, AST_print_context& ctx, char sep=',');
 
 		/* -~-~-~- Main JSON method -~-~-~- */
 		void json(std::ostream& out, AST_print_context& ctx);

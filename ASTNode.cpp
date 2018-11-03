@@ -77,28 +77,8 @@ namespace AST {
     /* -~-~-~- JSON printing methods -~-~-~- */
     /* ===================================== */
 
-    void ASTNode::json_child (std::ostream &out, AST_print_context &ctx, std::string field, ASTNode &child, char sep=',') {
-        json_indent(out, ctx);
-        out << "\"" << field << "\" : ";
-        child.json(out, ctx);
-        out << sep;
-    }
-
-    /* The head element looks like { "kind" : "block", */
-    void ASTNode::json_head(std::string node_kind, std::ostream &out, AST_print_context &ctx) {
-        json_indent(out, ctx);
-        out << "{\"kind\" : \"" << node_kind << "\", " ;
-        ctx.indent();
-        return;
-    }
-
-    void ASTNode::json_close(std::ostream &out, AST_print_context &ctx) {
-        out << "}";
-        ctx.dedent();
-    }
-
     /* Indent to a given level */
-    void ASTNode::json_indent(std::ostream &out, AST_print_context &ctx) {
+    void ASTNode::json_indent(std::ostream& out, AST_print_context& ctx) {
         if (ctx.indent_ > 0) {
             out << std::endl;
         }
@@ -107,7 +87,27 @@ namespace AST {
         }
     }
 
-    void ASTNode::jsonSeq(std::ostream &out, AST_print_context &ctx) {
+    void ASTNode::json_child(std::ostream& out, AST_print_context& ctx, std::string field, ASTNode& child, char sep=',') {
+        json_indent(out, ctx);
+        out << "\"" << field << "\" : ";
+        child.json(out, ctx);
+        out << sep;
+    }
+
+    /* The head element looks like { "kind" : "block", */
+    void ASTNode::json_head(std::string node_kind, std::ostream& out, AST_print_context& ctx) {
+        json_indent(out, ctx);
+        out << "{\"kind\" : \"" << node_kind << "\", " ;
+        ctx.indent();
+        return;
+    }
+
+    void ASTNode::json_close(std::ostream& out, AST_print_context& ctx) {
+        out << "}";
+        ctx.dedent();
+    }
+
+    void ASTNode::jsonSeq(std::ostream& out, AST_print_context& ctx) {
         json_head(typeString(this->type), out, ctx);
 
         out << "\"elements_\" : [";
@@ -126,7 +126,7 @@ namespace AST {
     /* -~-~-~- Main JSON method -~-~-~- */
     /* ================================ */
 
-    void ASTNode::json(std::ostream &out, AST_print_context &ctx) {
+    void ASTNode::json(std::ostream& out, AST_print_context& ctx) {
         if (isSeqType(this->type)) {
             jsonSeq(out, ctx);
         } else {
