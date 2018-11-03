@@ -1,7 +1,3 @@
-// Andrew Letz
-// Last Modified: 10/31/2018
-// Acknowledgements: Dr. Michal Young for starter code
-
 #ifndef ASTENUM_H
 #define ASTENUM_H
 
@@ -34,8 +30,6 @@ static const char * TypeString[] = {
         /* -~-~-~-~- Begin Identifier Types -~-~-~-~- */
         "name_"
 };
-
-extern std::set<Type> HeadTypes;
 
 extern std::set<Type> SeqTypes;
 extern bool isSeqType(Type type);
