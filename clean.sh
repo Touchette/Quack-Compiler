@@ -1,2 +1,4 @@
-rm -rf build
+cd build
+rm -rf **
+cd ..
 rm parser
