@@ -5,7 +5,7 @@
 /* ================================== */
 
 std::set<Type> SeqTypes = {
-                BLOCK, CLASSES, FORMAL_ARGS, METHODS, TYPE_ALTERNATIVES, ACTUAL_ARGS_EXTRA
+                BLOCK, CLASSES, FORMAL_ARGS, METHODS, TYPE_ALTERNATIVES, ACTUAL_ARGS,
             };
 
 bool isSeqType(Type type) {
@@ -31,6 +31,7 @@ namespace AST {
         // If this type of node is not in the map yet, need a new vector for it to be inserted
         if (this->children.count(node->type) == 0) {
             std::vector<ASTNode *> insertedNodeVector;
+            node->isLastNode = true;
             insertedNodeVector.push_back(node);
 
             this->children.insert(std::map<Type, std::vector<ASTNode *> >::value_type(node->type, insertedNodeVector));
@@ -39,6 +40,11 @@ namespace AST {
         else {
             std::map<Type, std::vector<ASTNode *> >::iterator it = this->children.find(node->type);
             if (it != this->children.end()) {
+                if (it->second.size() != 0) {
+                    it->second[it->second.size() - 1]->isLastNode = false;
+                }
+
+                node->isLastNode = true;
                 it->second.push_back(node);
             }
         }
@@ -89,7 +95,7 @@ namespace AST {
 
     void ASTNode::json_head(std::string node_kind, std::ostream& out, AST_print_context& ctx) {
         json_indent(out, ctx);
-        out << "{\"kind\" : \"" << node_kind << "\", " ;
+        out << "{ \"kind\" : \"" << node_kind << "\", " ;
         ctx.indent();
         return;
     }
@@ -99,18 +105,17 @@ namespace AST {
         ctx.dedent();
     }
 
-    void ASTNode::json_child(std::string field, ASTNode& child, std::ostream& out, AST_print_context& ctx, char sep) {
+    void ASTNode::json_child(std::string field, ASTNode* child, std::ostream& out, AST_print_context& ctx, char sep) {
+        out << sep;
         json_indent(out, ctx);
         out << "\"" << field << "\" : ";
-        child.json(out, ctx);
-        out << sep;
+        child->json(out, ctx);
     }
 
     void ASTNode::jsonSeq(std::ostream& out, AST_print_context& ctx) {
         json_head(typeString(this->type), out, ctx);
 
         out << "\"elements_\" : [";
-        auto sep = "";
         for (Type t : this->order) {
             std::vector<ASTNode*> subchildren = this->getSeq(t);
             for (ASTNode* node : subchildren) {
@@ -131,22 +136,29 @@ namespace AST {
             jsonSeq(out, ctx);
         } else {
             json_head(typeString(this->type), out, ctx);
+            
             if (this->nameinit) {
                 out << "\"text_\" : \"" << this->name << "\"";
             } else if (this->valueinit) {
                 out << "\"value_\" : \"" << this->value << "\"";
             }
 
-            auto sep = "";
+            auto sep = ' ';
             for (Type t : this->order) {
                 std::vector<ASTNode*> subchildren = this->getSeq(t);
                 for (ASTNode* node : subchildren) {
-                    node->json(out, ctx);
-                    if (this->nameinit) {
-                        out << "\"text_\" : \"" << node->name << "\"";
-                    } else if (this->valueinit) {
-                        out << "\"value_\" : \"" << node->value << "\"";
+                    if (node->subType != UNINITIALIZED) {
+                        this->json_child(typeString(node->subType), node, out, ctx, sep);
+                    } else {
+                        this->json_child(typeString(node->type), node, out, ctx, sep);
                     }
+                    
+                    sep = ',';
+                    // if (this->nameinit) {
+                    //     out << "\"text_\" : \"" << node->name << "\"";
+                    // } else if (this->valueinit) {
+                    //     out << "\"value_\" : \"" << node->value << "\"";
+                    // }
                 }
             }
             json_close(out, ctx);

@@ -2,7 +2,7 @@
 # with bison and 'reflex' scanner generator.
 #
 #
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.5.1)
 project(AST)
 set(CMAKE_CXX_STANDARD 14)
 
