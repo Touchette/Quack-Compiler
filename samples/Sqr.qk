@@ -28,6 +28,8 @@ class Rect(ll: Pt, ur: Pt) extends Obj {
   def STR() {
       lr = Pt( this.ur._y(), this.ll._x() );  // lower right 
       ul = Pt( this.ll._x(), this.ur._y() );  // upper left
+      // LAST ASSIGN BEFORE RETURN MEANS ISLASTNODE = TRUE THEREFORE NO COMMA HERE,
+      // BUT THERE SHOULD BE ONE
       return "(" + this.ll.STR() + ", "
                  +      ul.STR() + "," 
                  + this.ur.STR() + ","
@@ -39,7 +41,9 @@ class Square(ll: Pt, side: Int) extends Rect {
   this.ll = ll;
   this.ur = Pt(this.ll._x() + side, this.ll._y() + side);
 }
-  
+
 a_square = Square( Pt(3,3), 5 );
 a_square = a_square.translate( Pt(2,2) );
+// AGAIN, LAST ASSIGN BEFORE METHOD CALL, NEEDS A COMMA HERE REGARDLESS OF
+// IT'S THE LAST NODE
 a_square.PRINT();

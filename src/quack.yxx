@@ -147,7 +147,7 @@ stmt
         | IF r_expr stmt_block elif_nts ELSE stmt_block { $$ = new AST::ASTNode(IF); $$->insert($2); $$->insert($3); $$->insert($4); $$->insert($6); }
         | WHILE r_expr stmt_block { $$ = new AST::ASTNode(WHILE); $$->insert($3); }
         | l_expr '=' r_expr ';' { $$ = new AST::ASTNode(ASSIGN); $$->insert($1); $3->subType = R_EXPR; $$->insert($3); }
-        | l_expr ':' ident '=' r_expr ';' { $$ = new AST::ASTNode(ASSIGN); $$->insert($1); $$->insert($3); $$->insert($5); }
+        | l_expr ':' ident '=' r_expr ';' { $$ = new AST::ASTNode(ASSIGN); $$->insert($1); $$->insert($3); $5->subType = R_EXPR; $$->insert($5); }
         | r_expr ';' { $$ = $1; }
         | RETURN r_expr ';' { $$ = new AST::ASTNode(RETURN); $2->subType = R_EXPR; $$->insert($2); }
         | RETURN ';' { $$ = new AST::ASTNode(RETURN); }
