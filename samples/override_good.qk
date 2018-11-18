@@ -39,7 +39,7 @@ class Square(ll: Pt, side: Int) extends Rect {
   this.ll = ll;
   this.ur = Pt(this.ll._x() + side, this.ll._y() + side);
 }
-
+  
 a_square = Square( Pt(3,3), 5 );
 a_square = a_square.translate( Pt(2,2) );
 a_square.PRINT();

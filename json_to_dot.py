@@ -21,7 +21,6 @@ EPILOGUE = "}"
 
 NODE_COUNT = 0
 
-
 def gen_name() -> str:
     """Return a unique node name"""
     global NODE_COUNT
@@ -29,7 +28,7 @@ def gen_name() -> str:
     return f"node_{NODE_COUNT}"
 
 
-def load(source: Union[str, IOBase]) -> Dict:
+def load(source : Union[str, IOBase]) -> Dict:
     """Loads dict structure from input that is either a
     file handle or a path to a file
     """
@@ -37,15 +36,13 @@ def load(source: Union[str, IOBase]) -> Dict:
         source = open(source, "r")
     return json.load(source)
 
-
-def dump_node(node: Union[dict, list], name: str, to_stream: IOBase = sys.stdout):
-    if isinstance(node, dict):
+def dump_node(node: Union[dict,list], name: str, to_stream: IOBase = sys.stdout):
+    if isinstance(node,dict):
         dump_structure(node, name, to_stream)
-    elif isinstance(node, list):
+    elif isinstance(node,list):
         dump_list(node, name, to_stream)
     else:
         dump_leaf_value(node, name, to_stream)
-
 
 def dump_leaf_value(node, name: str, to_stream: IOBase):
     """Not a dict or list; should be string or integer"""
@@ -53,13 +50,12 @@ def dump_leaf_value(node, name: str, to_stream: IOBase):
     log.debug(f"A leaf with value {node}")
     print(f"""{name}[shape=plaintext,label="{node}"];""", file=to_stream)
 
-
 def dump_structure(node: dict, name: str, to_stream: IOBase):
     """Dump a representation of the node 'root' (a dict) as a node with name 'name',
     plus all the descendents of root in the AST structure.
     """
     log.debug(f"""A dict structure with kind {node["kind"]}""")
-    print(f"""{name}[shape=box,label="{node["kind"]}"];""", file=to_stream)
+    print(f"""{name}[shape=box,label="{node["kind"]}"];""",file=to_stream)
     for field in node:
         if field == "kind":
             # Treated specially above
@@ -68,7 +64,6 @@ def dump_structure(node: dict, name: str, to_stream: IOBase):
         child_name = gen_name()
         dump_node(child, child_name, to_stream)
         print(f"""{name} -> {child_name} [taillabel="{field}"];""")
-
 
 def dump_list(node: list, name: str, to_stream: IOBase):
     """Dump a representation of a list (e.g., block of statements),
@@ -79,7 +74,7 @@ def dump_list(node: list, name: str, to_stream: IOBase):
     else:
         log.debug(f"""A list of {node[0]["kind"]}""")
     # First the fields of the record
-    print(f'{name}[shape=record,label="', end="", file=to_stream)
+    print(f'{name}[shape=record,label="',end="",file=to_stream)
     field_sep = ""
     for i in range(len(node)):
         print(f"{field_sep}<e_{i}>{i}", end="", file=to_stream)
@@ -93,13 +88,21 @@ def dump_list(node: list, name: str, to_stream: IOBase):
 
 
 def main():
-    # TBD: Give this a decent CLI
+    #TBD: Give this a decent CLI
     source = sys.argv[1]
     ast = load(source)
     print(PROLOGUE)
-    dump_node(ast, "root")
+    dump_node(ast,"root")
     print(EPILOGUE)
-
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
+
+
