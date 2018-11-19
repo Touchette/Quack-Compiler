@@ -226,7 +226,6 @@ std::string Typechecker::leastCommonAncestor(std::string class1, std::string cla
 		}
 	}
 
-	std::cout << "The lca of " << class1 << " and " << class2 << " is " << retVal << std::endl;
 	return retVal;
 }
 
