@@ -1,0 +1,6 @@
+class Cat() {
+	x = 42;
+	y = true;
+	z = "hi";
+	w = b.methd(x, y, z);
+}

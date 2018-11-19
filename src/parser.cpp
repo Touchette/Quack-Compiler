@@ -29,11 +29,11 @@ class Driver {
         int result = parser->parse();
         if (result == 0 && report::ok()) {
             if (root == nullptr) {
-                std::cout << "AST Root is null.\n";
+                report::rnote("Abstract Syntax Tree root is null!", PARSER);
             }
             return root; // program was legal
         } else {
-            std::cout << "Parse failed, no tree\n";
+            report::error("Parse failed! No tree created.", PARSER);
             return nullptr; // if the parse fails, we don't want an AST
         }
     }
@@ -59,6 +59,6 @@ int main(int argc, char *argv[]) {
         std::cout << std::endl;
     } else {
         // either the parse has failed, or no AST was built.
-        std::cout << "Extracted root was nullptr" << std::endl; 
+        report::rnote("Extracted Abstract Syntax Tree root was nullptr!", PARSER); 
     }
 }

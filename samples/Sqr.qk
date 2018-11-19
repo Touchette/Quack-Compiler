@@ -16,7 +16,7 @@ class Pt(x: Int, y: Int) {
   }
 
   def _x() : Int { return this.x; }
-  def _y() : Int {  return this.y; }
+  def _y() : Int { return this.y; }
 }
 
 class Rect(ll: Pt, ur: Pt) extends Obj {
