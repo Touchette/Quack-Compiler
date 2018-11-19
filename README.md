@@ -20,7 +20,7 @@ These regular expressions will, upon seeing `/*`, enter a so-called "scanner sta
 ## Parser ##
 ### quack.yxx, parser.cpp, names.h ###
 
-The parser is written in Bison: it outlines the grammar of the Quack language and (hopefully) produces a parse tree that will be turned into the abstract syntax tree. It also outputs syntax errors when given programs do not conform to the grammar correctly and also notifies when a program is syntactically correct and well-structered. An example grammar rule/production for matching/parsing method calls:
+The parser is written in Bison: it outlines the grammar of the Quack language and (hopefully) produces a parse tree that will be turned into the abstract syntax tree. It also outputs syntax errors when given programs do not conform to the grammar correctly and also notifies when a program is syntactically correct and well-structured. An example grammar rule/production for matching/parsing method calls:
 
 ```
 method
