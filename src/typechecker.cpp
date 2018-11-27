@@ -31,6 +31,7 @@ Qmethod* Typechecker::createQmethod(AST::Node *method, Qclass *containerClass, b
 		std::vector<AST::Node *> formals = formalsContainer->getAll(CLASS_ARG);
 		for (AST::Node *arg : formals) {
 			newMethod->init.push_back(arg->get(IDENT, VAR_IDENT)->name);
+			newMethod->args.push_back(arg->get(IDENT, VAR_IDENT)->name);
 			newMethod->type[arg->get(IDENT, VAR_IDENT)->name] = arg->get(IDENT, TYPE_IDENT)->name;
 			// OUT << "	Formal: " << arg->get(IDENT, VAR_IDENT)->name
 			// 		<< ", " << arg->get(IDENT, TYPE_IDENT)->name << END;

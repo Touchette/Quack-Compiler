@@ -2,6 +2,7 @@
 #define TYPECHECKER_H
 
 #include <stack>
+#include <fstream>
 #include "ASTNode.h"
 #include "Messages.h"
 
@@ -26,6 +27,7 @@ struct Qmethod {
     std::vector<std::string> init;
     std::map<std::string, std::string> type;
     std::vector<AST::Node*> stmts;
+    std::vector<std::string> args;
 };
 
 struct Qclass {
@@ -44,6 +46,7 @@ class Typechecker {
         /* ============ */
         /* Data Members */
         /* ============ */
+
         // passed in from the parser, is the root of our AST
         AST::Node *root;
         AST::Node *stubs;

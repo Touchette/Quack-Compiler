@@ -4,6 +4,7 @@
 #include "Messages.h"
 #include "typechecker.h"
 #include "stubs.h"
+#include "codegen.h"
 #include <fstream>
 
 class Driver {
@@ -115,6 +116,14 @@ int main(int argc, char *argv[]) {
         report::dynamicBail();
         if (programValid) report::gnote("complete.", TYPECHECKER);
         // if programValid is false it should have bailed in the type checker
+
+        report::ynote("starting...", CODEGENERATION);
+        CodeGenerator codeGenerator(&typeChecker, std::string("test.c"));
+        bool codeGenerated = codeGenerator.generate();
+
+        report::dynamicBail();
+        if (codeGenerated) report::gnote("complete.", CODEGENERATION);
+        // if codeGenerated is false it should have bailed in the code generator
 
         exit(0);
 
