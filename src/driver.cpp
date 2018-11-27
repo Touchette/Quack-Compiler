@@ -3,6 +3,7 @@
 #include "EvalContext.h"
 #include "Messages.h"
 #include "typechecker.h"
+#include "stubs.h"
 #include <fstream>
 
 class Driver {
@@ -16,7 +17,6 @@ class Driver {
     //                    used to pass the Node back here.
 
     explicit Driver(reflex::Input in) : lexer(in), parser(new yy::parser(lexer, &root)) {
-        report::ynote("starting...", LEXER);
         root = nullptr;
     }
 
@@ -26,7 +26,6 @@ class Driver {
     // parse: attempts to parse the given program (tokenized by input lexer).
     //        root is an Node ** in quack.yxx, used to pass the root back here.
     AST::Node* parse() {
-        report::ynote("starting...", PARSER);
         parser->set_debug_level(0); // 0 = no debugging, 1 = full tracing
 
         // parse() is defined by Bison. 0 = parse success
@@ -34,7 +33,7 @@ class Driver {
         if (result == 0 && report::ok()) {
             if (root == nullptr) {
                 report::error("Root really shouldn't be null here.", PARSER);
-                report::bail(PARSER);
+                report::dynamicBail();
             }
             return root; // program was legal
         } else {
@@ -54,6 +53,7 @@ class Driver {
 void printUsage() {
     report::rnote("Usage: ./qcc [filename].qk", PROMPT);
     report::rnote("\t*use flag: --json=true for JSON output", PROMPT);
+    report::rnote("\t*use flag: --no-debug to hide compile stage messages", PROMPT);
 }
 
 int main(int argc, char *argv[]) {
@@ -83,16 +83,21 @@ int main(int argc, char *argv[]) {
     file.open(filename);
 
     if (!file.is_open()) {
-        std::cerr << "\033[1;91m" << "Invalid file \"" << filename << "\"\033[0m" << std::endl;
+        std::cerr << "\033[1;91m" << "Invalid file or flag \"" << filename << "\"\033[0m" << std::endl;
         printUsage();
         exit(1);
     }
 
     Driver driver(file);
     
+    report::ynote("starting...", LEXER);
+    report::ynote("starting...", PARSER);
     // Parse and get AST into *root
     AST::Node* root = driver.parse();
     if (root != nullptr) {
+        Driver stubsDriver(STUBS);
+        AST::Node* stubsRoot = stubsDriver.parse();
+
         report::gnote("complete.", LEXER);
         report::gnote("complete.", PARSER);
         AST::AST_print_context context;
@@ -102,40 +107,22 @@ int main(int argc, char *argv[]) {
             std::cout << std::endl;
         } 
 
-        //report::ynote("starting...", TYPECHECKER);
-        Typechecker typeChecker(root);
+        // begin type checking on our non-null AST
+        report::ynote("starting...", TYPECHECKER);
+        Typechecker typeChecker(root, stubsRoot);
+        bool programValid = typeChecker.checkProgram();
 
-        bool classHierarchyValid = typeChecker.classHierarchyCheck();
-        if (!classHierarchyValid) {
-            report::error("class hierarchy check failed: circular dependency detected!", TYPECHECKER);
-            report::bail(CLASSHIERARCHY);
-        } else {
-            report::gnote("class hierarchy check passed.", TYPECHECKER);
-        }
-
-        bool initBeforeUseCheckValid = typeChecker.initializeBeforeUseCheck();
-        if (!initBeforeUseCheckValid) {
-            report::error("initialization before use check failed: idk what to put here yet!", TYPECHECKER);
-            report::bail(INITBEFOREUSE);
-        } else {
-            report::gnote("initialization before use check passed.", TYPECHECKER);
-        }
-
-        bool typeInferenceCheckValid = typeChecker.typeInferenceCheck();
-        if (!typeInferenceCheckValid) {
-            report::error("type inference check failed: idk what to put here yet!", TYPECHECKER);
-            report::bail(TYPEINFERENCE);
-        } else {
-            report::gnote("type inference check passed.", TYPECHECKER);
-        }
-
-        report::gnote("complete.", TYPECHECKER);
+        report::dynamicBail();
+        if (programValid) report::gnote("complete.", TYPECHECKER);
+        // if programValid is false it should have bailed in the type checker
 
         exit(0);
+
     } else {
         // either the parse has failed, or no AST was built.
-        report::rnote("Compilation failed: Abstract Syntax Tree could not be generated!", PARSER);
-        report::bail(PARSER);
+        report::rnote("compilation failed - abstract syntax tree could not be generated!", PARSER);
+        report::dynamicBail();
     }
+
     file.close();
 }
