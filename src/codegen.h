@@ -23,6 +23,9 @@ class CodeGenerator {
         // filename for outputting
         std::string filename;
 
+        // static variable for counting temps
+        int tempno = 1;
+
         /* ========================== */
         /* Constructors & Destructors */
         /* ========================== */
@@ -45,6 +48,7 @@ class CodeGenerator {
         void generateTypedefs(std::ostream &output);
         void generateClassdefs(std::ostream &output);
         void generateMainAssign(std::ostream &output, AST::Node *stmt);
+        void generateMainCall(std::ostream &output, AST::Node *stmt);
 };
 
 #endif

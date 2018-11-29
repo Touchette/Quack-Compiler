@@ -118,11 +118,16 @@ int main(int argc, char *argv[]) {
         // if programValid is false it should have bailed in the type checker
 
         report::ynote("starting...", CODEGENERATION);
-        CodeGenerator codeGenerator(&typeChecker, std::string("test.c"));
+        CodeGenerator codeGenerator(&typeChecker, std::string("QuackOutput.c"));
         bool codeGenerated = codeGenerator.generate();
 
         report::dynamicBail();
-        if (codeGenerated) report::gnote("complete.", CODEGENERATION);
+        if (codeGenerated) {
+            report::gnote("complete.", CODEGENERATION);
+            report::ynote("starting GCC invocation...", CODEGENERATION);
+            system("./invoke_gcc.sh");
+            report::gnote("complete. Your outputted program is named QuackOutput!", CODEGENERATION);
+        }
         // if codeGenerated is false it should have bailed in the code generator
 
         exit(0);

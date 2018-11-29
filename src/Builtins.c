@@ -5,7 +5,7 @@
  */
 #include <stdio.h>   
 #include <stdlib.h>  /* Malloc lives here; might replace with gc.h    */ 
-#include <String.h>  /* For strcpy; might replace with cords.h from gc */ 
+#include <string.h>  /* For strcpy; might replace with cords.h from gc */ 
 
 #include "Builtins.h"
 
@@ -35,7 +35,7 @@ obj_Obj new_Obj(  ) {
 obj_String Obj_method_STRING(obj_Obj this) {
   long addr = (long) this;
   char *rep;
-  asprintf(&rep, "<Object at %ld>", addr);
+  asprintf(&rep, "<Object at %ld>\n", addr);
   obj_String str = str_literal(rep); 
   return str;
 }
@@ -45,7 +45,7 @@ obj_String Obj_method_STRING(obj_Obj this) {
 /* Obj:PRINT */
 obj_Obj Obj_method_PRINT(obj_Obj this) {
   obj_String str = this->clazz->STRING(this);
-  fprintf(stdout, "%s", str->text);
+  fprintf(stdout, "%s\n", str->text);
   return this;
 }
 
@@ -95,7 +95,7 @@ obj_String String_method_STRING(obj_String this) {
 
 /* String:PRINT */
 obj_String String_method_PRINT(obj_String this) {
-  fprintf(stdout, "%s", this->text);
+  fprintf(stdout, "%s\n", this->text);
   return this;
 }
   
@@ -144,7 +144,8 @@ obj_String str_literal(char *s) {
  */
 /* Constructor */
 obj_Boolean new_Boolean(  ) {
-  obj_Boolean new_thing = (obj_Boolean) malloc(sizeof(struct obj_Boolean_struct));
+  obj_Boolean new_thing = (obj_Boolean)
+    malloc(sizeof(struct obj_Boolean_struct));
   new_thing->clazz = the_class_Boolean;
   return new_thing; 
 }
@@ -181,9 +182,11 @@ class_Boolean the_class_Boolean = &the_class_Boolean_struct;
  * should ever exist. The constructor just picks one of 
  * them. 
  */ 
-struct obj_Boolean_struct lit_false_struct = { &the_class_Boolean_struct, 0 };
+struct obj_Boolean_struct lit_false_struct =
+  { &the_class_Boolean_struct, 0 };
 obj_Boolean lit_false = &lit_false_struct;
-struct obj_Boolean_struct lit_true_struct = { &the_class_Boolean_struct, 1 };
+struct obj_Boolean_struct lit_true_struct =
+  { &the_class_Boolean_struct, 1 };
 obj_Boolean lit_true = &lit_true_struct;
 
 /* ==============
@@ -204,7 +207,7 @@ obj_Nothing new_Nothing(  ) {
 
 /* Boolean:STRING */
 obj_String Nothing_method_STRING(obj_Nothing this) {
-    return str_literal("<nothing>");
+    return str_literal("<nothing>\n");
 }
 
 /* Inherit Obj:EQUAL, since we have only one

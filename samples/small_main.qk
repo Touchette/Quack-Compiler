@@ -1,9 +1,10 @@
+/*
 class DoesntMatter(x: Int, y: Int, z: String, w: Boolean) {
     
     def zlarpo() {
-        x = 10;
-        b = 10;
-        c = 10;
+        x : Int = 10;
+        b : Int = 10;
+        c : Int = 10;
         if (x == 10) {
             if (b == 10) {
                 if (c == 10) {
@@ -25,16 +26,16 @@ class DoesntMatter(x: Int, y: Int, z: String, w: Boolean) {
     }
 
 }
-
+*/
 
 u : String = "good world";
 w : Boolean = true;
-w : Boolean = false;
 x : Int = 20;
 y : Int = 20;
-z : Int = x + 5;
-z : String = "goodbye" + "hello";
 z : Int = x + y;
-z : Int = 5 + 5;
-b : DoesntMatter = DoesntMatter(5, y, "bye", true);
+h : Int = 5 + 5;
+// b : DoesntMatter = DoesntMatter(5, y, "bye", true);
+7.PRINT();
 z.PRINT();
+h.PRINT();
+u.PRINT();

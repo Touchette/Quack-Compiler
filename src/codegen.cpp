@@ -139,13 +139,8 @@ bool CodeGenerator::generateMethods(std::ostream &output) {
 			}
 			output << ") {" << std::endl;
 
-			// initialization statements of local variables
-			for (auto constructorArg : qmethod->type) {
-				if (constructorArg.first != "return") {
-					output << "\tobj_" << constructorArg.second << " local_" << constructorArg.first << ";" <<
-					std::endl;
-				}
-			}
+			// need to generate the method statements here
+
 			output << "}" << indent;
 		}
 	}
@@ -169,8 +164,11 @@ bool CodeGenerator::generateMain(std::ostream &output) {
 			case ASSIGN:
 				generateMainAssign(output, stmt);
 				break;
+			case CALL:
+				generateMainCall(output, stmt);
+				break;
 			default:
-				std::cerr << "node type unsupported" << std::endl;
+				std::cerr << "node type unsupported: " << typeString(nodeType) << std::endl;
 				break;
 		}
 	}
@@ -178,6 +176,110 @@ bool CodeGenerator::generateMain(std::ostream &output) {
 	output << "\n\treturn 0;\n}" << std::endl;
 
 	return true;
+}
+
+void CodeGenerator::generateMainCall(std::ostream &output, AST::Node *stmt) {
+	// this is the name of the method caller, aka the "name" in "name.METHOD()"
+	AST::Node *callerIdent = stmt->get(LOAD, L_EXPR);
+	// this is the case where the caller of a method is an intLiteral
+	AST::Node *callerInt = stmt->get(INTCONST);
+	// this is the case where the caller of a method is a strLiteral
+	AST::Node *callerStr = stmt->get(STRCONST);
+	AST::Node *argVecs = stmt->get(ACTUAL_ARGS);
+
+	std::string caller;
+
+	// handle the case where method is being called by an identifier
+	if (callerIdent != NULL) {
+		AST::Node *methodCallerName = callerIdent->get(IDENT, LOC);
+		if (methodCallerName != NULL) {
+			output << "\t" << methodCallerName->name << "->clazz->";
+			caller = methodCallerName->name;
+		}
+	} 
+	// handle the case where method is being called by an intLiteral, used in PLUS method calls.
+	// going to need a temp variable for this 
+	else if (callerInt != NULL) {
+		output << "\t// calling a method on an int literal, need a temp variable" << std::endl;
+		output << "\tobj_Int tempInt" << this->tempno <<  " = int_literal(" << callerInt->value << ");" << std::endl;
+		output << "\ttempInt" << this->tempno << "->clazz->";
+		caller = "tempInt" + std::to_string(this->tempno);
+		++this->tempno;
+	}
+	// handle the case where method is being called by a strLiteral, used in PLUS method calls. (concatenation)
+	// going to need a temp variable for this  
+	else if (callerStr != NULL) {
+		output << "\t// calling a method on a string literal, need a temp variable" << std::endl;
+		output << "\tobj_String tempStr" << this->tempno <<  " = str_literal(" << callerStr->name << ");" << std::endl;
+		output << "\ttempStr" << this->tempno << "->clazz->";
+		caller = "tempStr" + std::to_string(this->tempno);
+		++this->tempno;
+	}
+
+	// get the name of the method we're calling and output it
+	AST::Node *methodName = stmt->get(IDENT, METHOD);
+	output << methodName->name << "(";
+
+	// get the arguments to the method call and begin to output them
+	AST::Node *methodArguments = stmt->get(ACTUAL_ARGS);
+	std::vector<AST::Node *> methodActuals = methodArguments->getAll(METHOD_ARG);
+	if (!methodActuals.empty()) {
+		int i = 0;
+		// this will check all the methods we have just grabbed, needs to get several
+		// different types of nodes to check which type of argument we have. the options
+		// are identifiers (which INCLUDE booleans), intLiterals, and strLiterals. they
+		// all need to be handled differently
+		for (AST::Node *methodArg : methodActuals) {
+			AST::Node *methodArgLoad = methodArg->get(LOAD, L_EXPR);
+			AST::Node *methodArgInt = methodArg->get(INTCONST);
+			AST::Node *methodArgStr = methodArg->get(STRCONST);
+			// handle identifiers and booleans
+			if (methodArgLoad != NULL) {
+				AST::Node *actual = methodArgLoad->get(IDENT, LOC);
+				if (i == 0) {
+					output << caller;
+					++i;
+					// if (actual->name == "true") {
+					// 	output << "lit_true";
+					// 	++i;
+					// } else if (actual->name == "false") {
+					// 	output << "lit_false";
+					// 	++i;
+					// } else {
+					// 	output << actual->name;
+					// 	++i;
+					// }
+				} else {
+					if (actual->name == "true") {
+						output << ", lit_true";
+					} else if (actual->name == "false") {
+						output << ", lit_false";
+					} else {
+						output << ", " << actual->name;
+					}
+				}
+			}
+			// handle intLiterals
+			else if (methodArgInt != NULL) {
+				if (i == 0) {
+					output << "int_literal(" << methodArgInt->value << ")";
+					++i;
+				} else {
+					output << ", int_literal(" << methodArgInt->value << ")";
+				}
+			}
+			// handle strLiterals
+			else if (methodArgStr != NULL) {
+				if (i == 0) {
+					output << "str_literal(" << "\"" << methodArgStr->name << "\")";
+					++i;
+				} else {
+					output << ", " << "str_literal(" << "\"" << methodArgStr->name << "\")";
+				}
+			}
+		}
+	}
+	output << caller << ");" << std::endl;
 }
 
 void CodeGenerator::generateMainAssign(std::ostream &output, AST::Node *stmt) {
@@ -239,6 +341,7 @@ void CodeGenerator::generateMainAssign(std::ostream &output, AST::Node *stmt) {
 
 	// check assignment of form "ident = methodCall();", this could be any method call including PLUS, etc
 	if ((left != NULL) && (rightCall != NULL)) {
+		std::string caller;
 
 		// this is the name of the method caller, aka the "name" in "name.METHOD()"
 		AST::Node *rightMethodCallerIdent = rightCall->get(LOAD, L_EXPR);
@@ -254,30 +357,35 @@ void CodeGenerator::generateMainAssign(std::ostream &output, AST::Node *stmt) {
 				} else {
 					output << "\tobj_UNKNOWN " << left->name << " = ";
 				}
-				output << rightMethodCallerName->name << ".";
+				output << rightMethodCallerName->name << "->clazz->";
+				caller = rightMethodCallerName->name;
 			}
 		} 
 		// handle the case where method is being called by an intLiteral, used in PLUS method calls.
 		// going to need a temp variable for this 
 		else if (rightMethodCallerInt != NULL) {
 			output << "\t// adding two int consts, need a temporary variable" << std::endl;
-			output << "\tobj_Int tempInt = int_literal(" << rightMethodCallerInt->value << ");" << std::endl;
+			output << "\tobj_Int tempInt" << this->tempno << " = int_literal(" << rightMethodCallerInt->value << ");" << std::endl;
 			if (explicit_type != NULL) {
-				output << "\tobj_" << explicit_type->name << " " << left->name << " = tempInt.";
+				output << "\tobj_" << explicit_type->name << " " << left->name << " = tempInt" << this->tempno << "->clazz->";
 			} else {
-				output << "\tobj_UNKNOWN " << left->name << " = tempInt.";
+				output << "\tobj_UNKNOWN " << left->name << " = tempInt" << this->tempno << "->clazz->";
 			}
+			caller = "tempInt" + std::to_string(this->tempno);
+			++this->tempno;
 		}
 		// handle the case where method is being called by a strLiteral, used in PLUS method calls. (concatenation)
 		// going to need a temp variable for this  
 		else if (rightMethodCallerStr != NULL) {
 			output << "\t// adding two str consts, need a temporary variable" << std::endl;
-			output << "\tobj_String tempStr = str_literal(\"" << rightMethodCallerStr->name << "\");" << std::endl;
+			output << "\tobj_String tempStr" << this->tempno << " = str_literal(\"" << rightMethodCallerStr->name << "\");" << std::endl;\
 			if (explicit_type != NULL) {
-				output << "\tobj_" << explicit_type->name << " " << left->name << " = tempStr.";
+				output << "\tobj_" << explicit_type->name << " " << left->name << " = tempStr" << this->tempno << "->clazz->";
 			} else {
-				output << "\tobj_UNKNOWN " << left->name << " = tempStr.";
+				output << "\tobj_UNKNOWN " << left->name << " = tempStr" << this->tempno << "->clazz->";
 			}
+			caller = "tempStr" + std::to_string(this->tempno);
+			++this->tempno;
 		}
 
 		// get the name of the method we're calling and output it
@@ -288,7 +396,6 @@ void CodeGenerator::generateMainAssign(std::ostream &output, AST::Node *stmt) {
 		AST::Node *rightArguments = rightCall->get(ACTUAL_ARGS);
 		std::vector<AST::Node *> methodActuals = rightArguments->getAll(METHOD_ARG);
 		if (!methodActuals.empty()) {	
-			int i = 0;
 			// this will check all the methods we have just grabbed, needs to get several
 			// different types of nodes to check which type of argument we have. the options
 			// are identifiers (which INCLUDE booleans), intLiterals, and strLiterals. they
@@ -298,48 +405,29 @@ void CodeGenerator::generateMainAssign(std::ostream &output, AST::Node *stmt) {
 				AST::Node *methodArgInt = methodArg->get(INTCONST);
 				AST::Node *methodArgStr = methodArg->get(STRCONST);
 				// handle identifiers and booleans
+				output << caller;
 				if (methodArgLoad != NULL) {
 					AST::Node *actual = methodArgLoad->get(IDENT, LOC);
-					if (i == 0) {
-						if (actual->name == "true") {
-							output << "lit_true";
-							++i;
-						} else if (actual->name == "false") {
-							output << "lit_false";
-							++i;
-						} else {
-							output << actual->name;
-							++i;
-						}
+					if (actual->name == "true") {
+						output << ", lit_true";
+					} else if (actual->name == "false") {
+						output << ", lit_false";
 					} else {
-						if (actual->name == "true") {
-							output << ", lit_true";
-						} else if (actual->name == "false") {
-							output << ", lit_false";
-						} else {
-							output << ", " << actual->name;
-						}
+						output << ", " << actual->name;
 					}
 				}
 				// handle intLiterals
 				else if (methodArgInt != NULL) {
-					if (i == 0) {
-						output << "int_literal(" << methodArgInt->value << ")";
-						++i;
-					} else {
-						output << ", int_literal(" << methodArgInt->value << ")";
-					}
+					output << ", int_literal(" << methodArgInt->value << ")";
 				}
 				// handle strLiterals
 				else if (methodArgStr != NULL) {
-					if (i == 0) {
-						output << "str_literal(" << "\"" << methodArgStr->name << "\")";
-						++i;
-					} else {
-						output << ", " << "str_literal(" << "\"" << methodArgStr->name << "\")";
-					}
+					output << "str_literal(" << "\"" << methodArgStr->name << "\")";
 				}
 			}
+		}
+		else {
+			output << caller;
 		}
 		output << ");" << std::endl;
 	}
