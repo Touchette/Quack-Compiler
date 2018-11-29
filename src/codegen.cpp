@@ -9,6 +9,9 @@ bool CodeGenerator::generate() {
 
 	std::ofstream fout(filename);
 
+	// include the built-in functions and classes provided by Professor Young
+	fout << "#include \"src/Builtins.h\"" << indent;
+
     bool classesGenerated = this->generateClasses(fout);
     if (!classesGenerated) {
     	report::error("code for classes could not be generated!", CODEGENERATION);
@@ -44,9 +47,6 @@ bool CodeGenerator::checkPrimitive(std::string name) {
 }
 
 bool CodeGenerator::generateClasses(std::ostream &output) {
-	// include the built-in functions and classes provided by Professor Young
-	output << "#include \"Builtins.h\"" << indent;
-
 	// print out the typedef'd structs for every class
 	generateTypedefs(output);
 
@@ -82,7 +82,7 @@ void CodeGenerator::generateClassdefs(std::ostream &output) {
 		output << "\tclass_" << currentClass->super << " super;" << std::endl;
 
 		for (Qmethod *qmethod : currentClass->methods) {
-			output << "\tobj_" << qmethod->type["return"] << "\t(*" <<
+			output << "\tobj_" << qmethod->type["return"] << " (*" <<
 			qmethod->name << ") (" << "obj_" << currentClass->name;
 
 			for (std::string argType : qmethod->args) {
@@ -92,13 +92,13 @@ void CodeGenerator::generateClassdefs(std::ostream &output) {
 		}
 		output << "};" << indent;
 		output << "struct obj_" << currentClass->name << " {" << std::endl;
-		output << "\tclass_" << currentClass->name << "\tclass;" << std::endl;
+		output << "\tclass_" << currentClass->name << " class;" << std::endl;
 		for (auto field : currentClass->instanceVarType) {
 			std::string varName = field.first;
 			std::string varType = field.second;
 
 			output << "\tobj_" << varType << 
-			"\tfield_" <<  varName << ";" <<
+			" field_" <<  varName << ";" <<
 			std::endl;
 		}
 		output << "};" << indent;
@@ -111,17 +111,42 @@ bool CodeGenerator::generateMethods(std::ostream &output) {
 		if (checkPrimitive(currentClass->name)) {
 			continue;
 		}
+
+		// comment denoting which type of methods we're printing
 		output << "// " << currentClass->name << " Methods" << std::endl;
 
+		// print the constructor method definition, returns new instance of class
 		output << "obj_" << currentClass->name << " new_" << currentClass->name << "() {" <<
-		indent << "}" << indent;
+		std::endl;
+
+		// print constructors, initializes the instance variables
+		for (auto constructorArg : currentClass->constructor->type) {
+			if (constructorArg.first != "return") {
+				output << "\tobj_" << constructorArg.second << " this_" << constructorArg.first << ";" <<
+				std::endl;
+			}
+		}
+		output << "}" << indent;
+
+		// print the method signature, including formalargs
 		for (Qmethod *qmethod : currentClass->methods) {
 			output << "obj_" << qmethod->type["return"] << " " << currentClass->name <<
 			"_method_" << qmethod->name << "(obj_" << currentClass->name << " this";
-			for (std::string argType : qmethod->args) {
-				output << ", obj_" << currentClass->name << " arg_" << argType;
+			for (auto argType : qmethod->type) {
+				if (argType.first != "return") {
+					output << ", obj_" << argType.second << " arg_" << argType.first;
+				}
 			}
-			output << ") {" << indent << "}" << indent;
+			output << ") {" << std::endl;
+
+			// initialization statements of local variables
+			for (auto constructorArg : qmethod->type) {
+				if (constructorArg.first != "return") {
+					output << "\tobj_" << constructorArg.second << " local_" << constructorArg.first << ";" <<
+					std::endl;
+				}
+			}
+			output << "}" << indent;
 		}
 	}
 
@@ -129,11 +154,249 @@ bool CodeGenerator::generateMethods(std::ostream &output) {
 }
 
 bool CodeGenerator::generateMain(std::ostream &output) {
-
-	output << std::endl;
+	output << "// main method - it's the end!" << std::endl;
 
 	output << "int main(int argc, char *argv[]) {" << std::endl;
-	output << "\treturn 0;\n}" << std::endl;
+
+	Qclass *mainClass = this->tc->main;
+
+	Qmethod *mainConstruct = mainClass->constructor;
+	std::vector<AST::Node *> mainStatements = mainConstruct->stmts;
+
+	for (AST::Node *stmt : mainStatements) {
+		Type nodeType = stmt->type;
+		switch (nodeType) {
+			case ASSIGN:
+				generateMainAssign(output, stmt);
+				break;
+			default:
+				std::cerr << "node type unsupported" << std::endl;
+				break;
+		}
+	}
+
+	output << "\n\treturn 0;\n}" << std::endl;
 
 	return true;
+}
+
+void CodeGenerator::generateMainAssign(std::ostream &output, AST::Node *stmt) {
+	// assignment statements take the form of "name : OptionalType = expression;",
+	// there are multiple cases for the right hand side of the expression. the left
+	// hand side is always a name, or identifier, followed by an optional type declaration
+
+	// the explicit declared type of the identifier in the assignment statement
+	AST::Node *explicit_type = stmt->get(IDENT, TYPE_IDENT);
+
+	// the types of nodes we can find while assigning are here
+	AST::Node *left = stmt->get(IDENT, LOC);
+	AST::Node *rightInt = stmt->get(INTCONST, R_EXPR);
+	AST::Node *rightBoolLoad = stmt->get(LOAD, R_EXPR);
+	AST::Node *rightCall = stmt->get(CALL, R_EXPR);
+	AST::Node *rightConstruct = stmt->get(CONSTRUCTOR, R_EXPR);
+	AST::Node *rightStr = stmt->get(STRCONST, R_EXPR);
+
+	// begin checking all types of nodes to find out which type of assignment we have:
+	// there are so many types that this ends up a massive ugly elif statement
+
+	// check assignment of form "ident = intLiteral;"
+	if ((left != NULL) && (rightInt != NULL)) {
+		if (explicit_type != NULL) {
+			output << "\tobj_" << explicit_type->name << " " << left->name << " = int_literal(" << rightInt->value << ");\n";
+		} else {
+			output << "\tobj_UNKNOWN" << " " << left->name << " = int_literal(" << rightInt->value << ");\n";
+		}
+	}
+
+	// check assignment of form "ident = strLiteral;
+	if ((left != NULL) && (rightStr != NULL)) {
+		if (explicit_type != NULL) {
+			output << "\tobj_" << explicit_type->name << " " << left->name << " = str_literal(\"" << rightStr->name << "\");\n";
+		} else {
+			output << "\tobj_UNKNOWN" << " " << left->name << " = str_literal(\"" << rightStr->name << "\");\n";
+		}
+	}
+	
+	// check assignment of form "ident = boolean;"
+	if ((left != NULL) && (rightBoolLoad != NULL)) {
+		AST::Node *rightBool = rightBoolLoad->get(IDENT, LOC);
+		// true is an obj_boolean struct represented by lit_true in builtins.cpp
+		if (rightBool->name == "true") {
+			if (explicit_type != NULL) {
+				output << "\tobj_" << explicit_type->name << " " << left->name << " = lit_true;\n";
+			} else {
+				output << "\tobj_UNKNOWN " << left->name << " = \"what? boolean but no identified type?\";\n";
+			}
+		} else if (rightBool->name == "false") {
+			// true is an obj_boolean struct represented by lit_false in builtins.cpp
+			if (explicit_type != NULL) {
+				output << "\tobj_" << explicit_type->name << " " << left->name << " = lit_false;\n";
+			} else {
+				output << "\tobj_UNKNOWN " << left->name << " = \"what? boolean but no identified type?\";\n";
+			}
+		}
+	}
+
+	// check assignment of form "ident = methodCall();", this could be any method call including PLUS, etc
+	if ((left != NULL) && (rightCall != NULL)) {
+
+		// this is the name of the method caller, aka the "name" in "name.METHOD()"
+		AST::Node *rightMethodCallerIdent = rightCall->get(LOAD, L_EXPR);
+		// this is the case where the caller of a method is an intLiteral
+		AST::Node *rightMethodCallerInt = rightCall->get(INTCONST);
+		// this is the case where the caller of a method is a strLiteral
+		AST::Node *rightMethodCallerStr = rightCall->get(STRCONST);
+		if (rightMethodCallerIdent != NULL) {
+			AST::Node *rightMethodCallerName = rightMethodCallerIdent->get(IDENT, LOC);
+			if (rightMethodCallerName != NULL) {
+				if (explicit_type != NULL) {
+					output << "\tobj_" << explicit_type->name << " " << left->name << " = ";
+				} else {
+					output << "\tobj_UNKNOWN " << left->name << " = ";
+				}
+				output << rightMethodCallerName->name << ".";
+			}
+		} 
+		// handle the case where method is being called by an intLiteral, used in PLUS method calls.
+		// going to need a temp variable for this 
+		else if (rightMethodCallerInt != NULL) {
+			output << "\t// adding two int consts, need a temporary variable" << std::endl;
+			output << "\tobj_Int tempInt = int_literal(" << rightMethodCallerInt->value << ");" << std::endl;
+			if (explicit_type != NULL) {
+				output << "\tobj_" << explicit_type->name << " " << left->name << " = tempInt.";
+			} else {
+				output << "\tobj_UNKNOWN " << left->name << " = tempInt.";
+			}
+		}
+		// handle the case where method is being called by a strLiteral, used in PLUS method calls. (concatenation)
+		// going to need a temp variable for this  
+		else if (rightMethodCallerStr != NULL) {
+			output << "\t// adding two str consts, need a temporary variable" << std::endl;
+			output << "\tobj_String tempStr = str_literal(\"" << rightMethodCallerStr->name << "\");" << std::endl;
+			if (explicit_type != NULL) {
+				output << "\tobj_" << explicit_type->name << " " << left->name << " = tempStr.";
+			} else {
+				output << "\tobj_UNKNOWN " << left->name << " = tempStr.";
+			}
+		}
+
+		// get the name of the method we're calling and output it
+		AST::Node *rightMethodName = rightCall->get(IDENT, METHOD);
+		output << rightMethodName->name << "(";
+
+		// get the arguments to the method call and begin to output them
+		AST::Node *rightArguments = rightCall->get(ACTUAL_ARGS);
+		std::vector<AST::Node *> methodActuals = rightArguments->getAll(METHOD_ARG);
+		if (!methodActuals.empty()) {	
+			int i = 0;
+			// this will check all the methods we have just grabbed, needs to get several
+			// different types of nodes to check which type of argument we have. the options
+			// are identifiers (which INCLUDE booleans), intLiterals, and strLiterals. they
+			// all need to be handled differently
+			for (AST::Node *methodArg : methodActuals) {
+				AST::Node *methodArgLoad = methodArg->get(LOAD, L_EXPR);
+				AST::Node *methodArgInt = methodArg->get(INTCONST);
+				AST::Node *methodArgStr = methodArg->get(STRCONST);
+				// handle identifiers and booleans
+				if (methodArgLoad != NULL) {
+					AST::Node *actual = methodArgLoad->get(IDENT, LOC);
+					if (i == 0) {
+						if (actual->name == "true") {
+							output << "lit_true";
+							++i;
+						} else if (actual->name == "false") {
+							output << "lit_false";
+							++i;
+						} else {
+							output << actual->name;
+							++i;
+						}
+					} else {
+						if (actual->name == "true") {
+							output << ", lit_true";
+						} else if (actual->name == "false") {
+							output << ", lit_false";
+						} else {
+							output << ", " << actual->name;
+						}
+					}
+				}
+				// handle intLiterals
+				else if (methodArgInt != NULL) {
+					if (i == 0) {
+						output << "int_literal(" << methodArgInt->value << ")";
+						++i;
+					} else {
+						output << ", int_literal(" << methodArgInt->value << ")";
+					}
+				}
+				// handle strLiterals
+				else if (methodArgStr != NULL) {
+					if (i == 0) {
+						output << "str_literal(" << "\"" << methodArgStr->name << "\")";
+						++i;
+					} else {
+						output << ", " << "str_literal(" << "\"" << methodArgStr->name << "\")";
+					}
+				}
+			}
+		}
+		output << ");" << std::endl;
+	}
+
+	// practically the same as a method call, this is the call of a constructor for a class
+	if ((left != NULL) && (rightConstruct != NULL)) {
+		AST::Node *rightConstructor = rightConstruct->get(IDENT);
+		output << "\tobj_" << rightConstructor->name << " " << left->name << " = " << "new_" << rightConstructor->name << "(";
+		AST::Node *constructArgs = rightConstruct->get(ACTUAL_ARGS);
+		std::vector<AST::Node *> constructorFormals = constructArgs->getAll(METHOD_ARG);
+		if (!constructorFormals.empty()) {
+			int i = 0;
+			for (AST::Node *formalArg : constructorFormals) {
+				AST::Node *formalArgLoad = formalArg->get(LOAD, L_EXPR);
+				AST::Node *formalArgInt = formalArg->get(INTCONST);
+				AST::Node *formalArgStr = formalArg->get(STRCONST);
+				if (formalArgLoad != NULL) {
+					AST::Node *formal = formalArgLoad->get(IDENT, LOC);
+					if (i == 0) {
+						if (formal->name == "true") {
+							output << "lit_true";
+							++i;
+						} else if (formal->name == "false") {
+							output << "lit_false";
+							++i;
+						} else {
+							output << formal->name;
+							++i;
+						}
+					} else {
+						if (formal->name == "true") {
+							output << ", lit_true";
+						} else if (formal->name == "false") {
+							output << ", lit_false";
+						} else {
+							output << ", " << formal->name;
+						}
+					}
+				}
+				else if (formalArgInt != NULL) {
+					if (i == 0) {
+						output << "int_literal(" <<formalArgInt->value << ")";
+						++i;
+					} else {
+						output << ", int_literal(" << formalArgInt->value << ")";
+					}
+				}
+				else if (formalArgStr != NULL) {
+					if (i == 0) {
+						output << "str_literal(\"" << formalArgStr->name << "\")";
+						++i;
+					} else {
+						output << ", str_literal(\"" << formalArgStr->name << "\")";
+					}
+				}
+			}
+		}
+		output << ");" << std::endl;
+	}
 }

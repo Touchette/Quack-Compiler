@@ -1,7 +1,7 @@
 class Black() {
-	x;
+	x : Int = 5;
 
 	def thing() {
-		y;
+		y : Int = 7;
 	}
 }

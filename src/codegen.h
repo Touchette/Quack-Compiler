@@ -5,7 +5,6 @@
 #include "ASTNode.h"
 #include "Messages.h"
 #include "typechecker.h"
-#include "Builtins.h"
 
 class CodeGenerator {
 	public:
@@ -45,6 +44,7 @@ class CodeGenerator {
         bool checkPrimitive(std::string name);
         void generateTypedefs(std::ostream &output);
         void generateClassdefs(std::ostream &output);
+        void generateMainAssign(std::ostream &output, AST::Node *stmt);
 };
 
 #endif
