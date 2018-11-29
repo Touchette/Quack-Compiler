@@ -21,14 +21,10 @@ obj_DoesntMatter new_DoesntMatter() {
 	obj_String this_z;
 }
 
-obj_Nothing DoesntMatter_method_zlarpo(obj_DoesntMatter this, obj_UNKNOWN arg_b, obj_String arg_blem, obj_UNKNOWN arg_c, obj_UNKNOWN arg_end, obj_UNKNOWN arg_g, obj_UNKNOWN arg_x, obj_UNKNOWN arg_z) {
+obj_Nothing DoesntMatter_method_zlarpo(obj_DoesntMatter this, obj_UNKNOWN arg_b, obj_UNKNOWN arg_c, obj_UNKNOWN arg_x) {
 	obj_UNKNOWN local_b;
-	obj_String local_blem;
 	obj_UNKNOWN local_c;
-	obj_UNKNOWN local_end;
-	obj_UNKNOWN local_g;
 	obj_UNKNOWN local_x;
-	obj_UNKNOWN local_z;
 }
 
 // main method - it's the end!
