@@ -1,9 +1,14 @@
 class Pt(x: Int, y: Int) {
-	this.x : Int = x;
-    this.y : Int = y;
+	this.x = x;
+    this.y = y;
 
 	def _get_x(): Int {
-		return this.x; 
+	    if (true) {
+	    	x = 5;
+		} else {
+			x = 5;
+		}
+		return this.x;
 	} 
 
 	def _get_y(): Int {
@@ -17,18 +22,19 @@ class Pt(x: Int, y: Int) {
 	}
 	*/
 
+	/*
     def PRINT(): Nothing {
        "( ".PRINT(); 
        this.x.PRINT(); 
        ", ".PRINT();
        ")".PRINT(); 
      }
+     */
 
 	def PLUS(other: Pt): Pt {
-		return Pt(this.x + other.x, this.y + other.y); 
+		return Pt(other.x, other.y); 
 	}
 }
 
-// Pt(13,42).PRINT();
-7;
-"a";
+x = Pt(13,42);
+Pt(53, 42).PRINT();

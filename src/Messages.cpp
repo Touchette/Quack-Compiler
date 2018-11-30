@@ -10,7 +10,7 @@ std::string stageString(CompStage stage) {
 namespace report {
 
 // The error count is global
-const int  error_limit = 4;
+const int  error_limit = 99;
 static bool debug = true;
 
 std::map<CompStage, int> error_count {
@@ -47,6 +47,10 @@ void bail(CompStage stage) {
 
 void setDebug(bool flag) {
     debug = flag;
+}
+
+bool getDebug() {
+    return debug;
 }
 
 // An error that we can locate in the input

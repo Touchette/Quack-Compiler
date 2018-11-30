@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
 
         report::dynamicBail();
         if (codeGenerated) {
-            report::gnote("complete.", CODEGENERATION);
+            report::gnote("generation of QuackOutput.c complete.", CODEGENERATION);
             report::ynote("starting GCC invocation...", CODEGENERATION);
             system("./invoke_gcc.sh");
             report::gnote("complete. Your outputted program is named QuackOutput!", CODEGENERATION);

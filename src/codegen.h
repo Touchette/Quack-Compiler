@@ -5,6 +5,7 @@
 #include "ASTNode.h"
 #include "Messages.h"
 #include "typechecker.h"
+#include <list>
 
 class CodeGenerator {
 	public:
@@ -55,7 +56,7 @@ class CodeGenerator {
 		// helper functions for generateMain
         void generateMainCall(std::ostream &output, AST::Node *stmt);
         // helper function for generating statements
-        std::string generateStatement(std::ostream &output, AST::Node *stmt);
+        std::string generateStatement(std::ostream &output, AST::Node *stmt, Qmethod *whichMethod, std::string whichClass="main");
 };
 
 #endif
