@@ -23,8 +23,9 @@ class CodeGenerator {
         // filename for outputting
         std::string filename;
 
-        // static variable for counting temps
+        // variable for counting temps, variable for printing arguments correctly
         int tempno = 1;
+        int i = 0;
 
         /* ========================== */
         /* Constructors & Destructors */
@@ -40,15 +41,21 @@ class CodeGenerator {
 		// sample beginning code generation
 		bool generate();
         bool generateClasses(std::ostream &output);
-        bool generateMethods(std::ostream &output);
         bool generateMain(std::ostream &output);
 
         // helper functions for the main code generation
         bool checkPrimitive(std::string name);
         void generateTypedefs(std::ostream &output);
-        void generateClassdefs(std::ostream &output);
-        void generateMainAssign(std::ostream &output, AST::Node *stmt);
+        // helper functions for generateClasses
+        void generateForwardDecls(std::ostream &output);
+		void generateStructs(std::ostream &output);
+		void generateExterns(std::ostream &output);
+		void generateMethods(std::ostream &output);
+		void generateSingletons(std::ostream &output);
+		// helper functions for generateMain
         void generateMainCall(std::ostream &output, AST::Node *stmt);
+        // helper function for generating statements
+        std::string generateStatement(std::ostream &output, AST::Node *stmt);
 };
 
 #endif

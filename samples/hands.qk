@@ -4,22 +4,22 @@ class Hand() {
 
 
 class LeftHand(x: Int) extends Hand {
-      this.x: Int = x;
+      this.x  = x;
       def foo(): Int { return 42; }
 }
 
 class RightHand(x: Int) extends Hand {
-      this.x: Int = x; 
-      def foo(): Int { return 42; }
+      this.x  = x; 
+      def foo() : Int { return 42; }
 }
 
 class Bot(x: Int, y: Int) {
    if x > 0 {
-      this.hand: Hand = LeftHand(3);
+      this.hand  = LeftHand(3);
    } else {
-      this.hand: Hand = RightHand(7);
+      this.hand  = RightHand(7);
    }
-   this.answer: Int = this.hand.foo();
-   this.answer: Int = this.hand.foo(); 
-   this.answer: Int = this.hand.foo(); 
+   this.answer = this.hand.foo();
+   this.answer = this.hand.foo(); 
+   this.answer = this.hand.foo(); 
 }

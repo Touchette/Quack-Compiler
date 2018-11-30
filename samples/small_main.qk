@@ -1,4 +1,4 @@
-/*
+
 class DoesntMatter(x: Int, y: Int, z: String, w: Boolean) {
     
     def zlarpo() {
@@ -26,16 +26,21 @@ class DoesntMatter(x: Int, y: Int, z: String, w: Boolean) {
     }
 
 }
-*/
 
+
+/*
 u : String = "good world";
 w : Boolean = true;
 x : Int = 20;
 y : Int = 20;
 z : Int = x + y;
-h : Int = 5 + 5;
+
+h : Int = 5 + 6; //+ 7 / 8 - 9 * 10;
+5 + 5;
 // b : DoesntMatter = DoesntMatter(5, y, "bye", true);
+
 7.PRINT();
 z.PRINT();
 h.PRINT();
 u.PRINT();
+*/
