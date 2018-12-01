@@ -46,12 +46,12 @@ bool CodeGenerator::generateClasses(std::ostream &output) {
 	// output the forward declarations of "the_class_CLASSNAME_struct"s
 	generateForwardDecls(output);
 
+	// idk what this is but it's in michal young's output so here it is
+	generateExterns(output);
+
 	// output the struct obj_CLASSNAME_struct with fields and clazz pointer,
 	// output the struct class_CLASSNAME_struct with methods
 	generateStructs(output);
-
-	// idk what this is but it's in michal young's output so here it is
-	generateExterns(output);
 
 	// output the methods for each class
 	generateMethods(output);
@@ -82,13 +82,18 @@ void CodeGenerator::generateTypedefs(std::ostream &output) {
 		output << "typedef struct class_" << name << 
 		"_struct* class_"<< name << ";" << std::endl;
 
+		output << "struct obj_" << name << "_struct;" << std::endl;
+
+		output << "typedef struct obj_" << name << 
+		"_struct* obj_"<< name << ";" << std::endl;
+
 		output << std::endl;
 	}
 	output << "// -~-~-~-~- Typedefs End -~-~-~-~-" << indent;
 }
 
 void CodeGenerator::generateForwardDecls(std::ostream &output) {
-	output << "// -~-~-~-~- Forward Declarations Begin -~-~-~-~-" << indent;
+	output << "// -~-~-~-~- Forward Declarations Begin -~-~-~-~-" << std::endl;
 	for (auto qclass : this->classes) {
 		auto currentClass = qclass.second;
 		std::string name = currentClass->name;
@@ -96,10 +101,50 @@ void CodeGenerator::generateForwardDecls(std::ostream &output) {
 		if (checkPrimitive(name)) {
 			continue;
 		} 
-		output << "// Class " << name << "'s forward declarations" << std::endl;
-		output << "struct class_" << name << "_struct the_class_" << name << "_struct;" << indent;
+		output << "\n// Class " << name << "'s forward declarations" << std::endl;
+		output << "struct class_" << name << "_struct the_class_" << name << "_struct;" << std::endl;
+		output << "obj_" << name << " new_" << name << "(";
+		i = 0;
+		for (auto constructArg : constructor->argtype) {
+			if (constructArg.second == name) {
+				continue;
+			}
+			if (i == 0) {
+				output << "obj_" << constructArg.second << " " << constructArg.first;
+				++i;
+			} else {
+				output << ", obj_" << constructArg.second << " " << constructArg.first;
+			}
+		}
+		output << ");" << std::endl;
+		for (auto method : currentClass->methods) {
+			std::string returnType = method->type["return"];
+			std::string methodName = method->name;
+
+			output << "obj_" << returnType << " " << name << "_method_" << methodName << "(";
+			i = 0;
+
+			if (method->argtype.size() == 1) {
+				output << "obj_" << name << " this";
+			} else {
+				output << "obj_" << name << " this, ";
+			}
+			for (auto arg : method->argtype) {
+				if (arg.first == "Nothing" || arg.first == "return") {
+					output << "";
+					continue;
+				}
+				if (i == 0) {
+					output << "obj_" << arg.second << " " << arg.first;
+					++i;
+				} else {
+					output << ", obj_" << arg.second << " " << arg.first;
+				}
+			}
+			output << ");" << std::endl;
+		}
 	}
-	output << "// -~-~-~-~- Forward Declarations End -~-~-~-~-" << indent;
+	output << "\n// -~-~-~-~- Forward Declarations End -~-~-~-~-" << indent;
 }
 
 void CodeGenerator::generateStructs(std::ostream &output) {
@@ -111,56 +156,204 @@ void CodeGenerator::generateStructs(std::ostream &output) {
 		if (checkPrimitive(name)) {
 			continue;
 		}
-
-		// output the struct obj_CLASSNAME_struct with fields and clazz pointer
-		output << "typedef struct obj_" << name << "_struct {" << std::endl;
-		output << "\tclass_" << name << " clazz;" << std::endl;
-
-		for (auto field : currentClass->instanceVarType) {
-			if (field.first != "this") {
-				output << "\tobj_" << field.second << " " << field.first << ";" << std::endl;
-			} 
-		}
-		output << "} * obj_" << name << ";" << indent;
-
-		// output the "struct class_CLASSNAME_struct"
-		output << "struct class_" << name << "_struct {" << std::endl;
-		output << "\t// Method Table - constructor comes first" << std::endl;
-
-		// print the constructor, which is a special method not inside "methods" vector
-		output << "\tobj_" << name << " (*constructor) (";
-
-		int i = 0;
-		for (auto constructArg : constructor->argtype) {
-			if (constructArg.second == name) {
-				continue;
-			}
-			if (i == 0) {
-				output << "obj_" << constructArg.second;
-				++i;
-			} else {
-				output << ", obj_" << constructArg.second;
+		// if the super class hasn't been printed yet (and isn't a builtin), then print it
+		if (std::find(printedClasses.begin(), printedClasses.end(), currentClass->super) == printedClasses.end()) {
+			if (!checkPrimitive(currentClass->super)) {
+				generateStruct(output, this->classes[currentClass->super]);
+				generateConstructor(output, this->classes[currentClass->super]);
+				printedClasses.push_back(currentClass->super);
 			}
 		}
-		output << ");" << std::endl;
+		// if the class hasn't been printed yet, then print it
+		if (std::find(printedClasses.begin(), printedClasses.end(), currentClass->name) == printedClasses.end()) {
+			generateStruct(output, currentClass);
+			generateConstructor(output, currentClass);
+			printedClasses.push_back(name);
+		}
+	}
+	output << "// -~-~-~-~- Structs End -~-~-~-~-" << indent;
+}
 
-		// print the rest of the class's methods
-		for (auto method : currentClass->methods) {
-			output << "\tobj_" << method->type["return"] << " (*" << method->name << ") (";
-			i = 0;
-			for (auto arg : method->argtype) {
-				if (i == 0) {
-					output << "obj_" << arg.second;
-					++i;
+void CodeGenerator::generateStruct(std::ostream &output, Qclass *whichClass) {
+	auto currentClass = whichClass;
+	std::string name = currentClass->name;
+	Qmethod *constructor = currentClass->constructor;
+
+	// output the struct obj_CLASSNAME_struct with fields and clazz pointer
+	output << "typedef struct obj_" << name << "_struct {" << std::endl;
+	output << "\tclass_" << name << " clazz;" << std::endl;
+
+	// vector of fields we've already printed
+	std::vector<std::string> printedFields;
+
+	// print the fields that were "inherited" (declared in super class that we must declare)
+	for (auto superField : this->fieldGenerationOrder[currentClass->super]) {
+		for (auto field : currentClass->instanceVars) {
+			std::string fieldType = currentClass->instanceVarType[field];
+			if (field == superField) {
+				if (std::find(printedFields.begin(), printedFields.end(), field) == printedFields.end()) {
+					output << "\tobj_" << fieldType << " " << field << ";" << std::endl;
+					printedFields.push_back(field);
+					fieldGenerationOrder[name].push_back(field);
+				}
+			}
+		}
+	}
+
+	// print the remaining fields
+	for (auto field : currentClass->instanceVars) {
+		std::string fieldType = currentClass->instanceVarType[field];
+		if (field != "this") {
+			if (std::find(printedFields.begin(), printedFields.end(), field) == printedFields.end()) {
+				output << "\tobj_" << fieldType << " " << field << ";" << std::endl;
+				printedFields.push_back(field);
+				fieldGenerationOrder[name].push_back(field);
+			}
+		}
+	}
+	output << "} * obj_" << name << ";" << indent;
+
+	// output the "struct class_CLASSNAME_struct"
+	output << "struct class_" << name << "_struct {" << std::endl;
+	output << "\t// Method Table - constructor comes first" << std::endl;
+
+	// print the constructor, which is a special method not inside "methods" vector
+	output << "\tobj_" << name << " (*constructor) (";
+
+	int i = 0;
+	for (auto constructArg : constructor->argtype) {
+		if (constructArg.second == name) {
+			continue;
+		}
+		if (i == 0) {
+			output << "obj_" << constructArg.second;
+			++i;
+		} else {
+			output << ", obj_" << constructArg.second;
+		}
+	}
+	output << ");" << std::endl;
+
+	// print out all methods, this includes inherited & overriden ones
+	if (checkPrimitive(currentClass->super)) {
+		methodOrderer(output, this->classes[currentClass->super]->methods, currentClass);
+	} else {
+		methodOrderer(output, this->methodGenerationOrder[currentClass->super], currentClass);
+	}
+}
+
+void CodeGenerator::methodOrderer(std::ostream &output, std::vector<Qmethod *> whereToLook, Qclass *currentClass) {
+	std::string name = currentClass->name;
+	Qmethod *constructor = currentClass->constructor;
+
+	// vector of methods we've already printed
+	std::vector<std::string> printedMethods;
+	// vector of names of our methods to check against super classes
+	std::vector<std::string> methodNames;
+	for (auto method : currentClass->methods) {
+		methodNames.push_back(method->name);
+	}
+
+	// print the super methods
+	for (auto superMethod : whereToLook) {
+		// check if the super method is in this class' methods, if it's overriden
+		if (std::find(methodNames.begin(), methodNames.end(), superMethod->name) != methodNames.end()) {
+			// look for the method that has the same name as the super method
+			for (auto method : currentClass->methods) {
+				if (method->name == superMethod->name) {
+					if (std::find(printedMethods.begin(), printedMethods.end(), method->name) == printedMethods.end()) {
+						output << "\tobj_" << method->type["return"] << " (*" << method->name << ") (";
+						output << "obj_" << name;
+						for (auto arg : method->args) {
+							std::string argtype = method->argtype[arg];
+							if (method->argtype[arg] != "Nothing") {
+									output << ", obj_" << argtype;
+							} else {
+								output << "obj_" << name;
+							}
+						}
+						output << "); // overriden method" << std::endl;
+						printedMethods.push_back(method->name);
+						methodGenerationOrder[name].push_back(method);
+					}
+				}
+			}
+		} else {
+			output << "\tobj_" << superMethod->type["return"] << " (*" << superMethod->name << ") (";
+			output << "obj_" << currentClass->super;
+			for (auto arg : superMethod->args) {
+				std::string argtype = superMethod->argtype[arg];
+				if (superMethod->argtype[arg] != "Nothing") {
+						output << ", obj_" << argtype;
 				} else {
-					output << ", obj_" << arg.second;
+					output << "obj_" << currentClass->super;
+				}
+			}
+			output << "); // inherited from " << currentClass->super << std::endl;
+			printedMethods.push_back(superMethod->name);
+			currentClass->methods.push_back(superMethod);
+			methodGenerationOrder[name].push_back(superMethod);
+		}
+	}
+
+	// print the rest of the class's methods
+	for (auto method : currentClass->methods) {
+		if (std::find(printedMethods.begin(), printedMethods.end(), method->name) == printedMethods.end()) {
+			output << "\tobj_" << method->type["return"] << " (*" << method->name << ") (";
+			output << "obj_" << name;
+			for (auto arg : method->args) {
+				std::string argtype = method->argtype[arg];
+				if (method->argtype[arg] != "Nothing") {
+						output << ", obj_" << argtype;
+				} else {
+					output << "obj_" << name;
 				}
 			}
 			output << ");" << std::endl;
+			printedMethods.push_back(method->name);
+			methodGenerationOrder[name].push_back(method);
 		}
-		output << "};" << indent;
 	}
-	output << "// -~-~-~-~- Structs End -~-~-~-~-" << indent;
+	output << "};" << indent;
+}
+
+void CodeGenerator::generateConstructor(std::ostream &output, Qclass *currentClass) {
+	std::string name = currentClass->name;
+	Qmethod *constructor = currentClass->constructor;
+
+	// time to print some methods!
+	// begin with the constructor...
+	output << "// " << name << "'s constructor method definition" << std::endl;
+	output << "obj_" << name << " new_" << name << "(";
+	i = 0;
+	for (auto constructArg : constructor->argtype) {
+		if (constructArg.second == name) {
+			continue;
+		}
+		if (i == 0) {
+			output << "obj_" << constructArg.second << " " << constructArg.first;
+			++i;
+		} else {
+			output << ", obj_" << constructArg.second << " " << constructArg.first;
+		}
+	}
+	output << ") {" << std::endl;
+	output << "\tobj_" << name << " this = (obj_" << name <<
+	") malloc(sizeof(struct obj_" << name << "_struct));" << std::endl;
+	output << "\tthis->clazz" << " = " << "the_class_" << name << ";" << std::endl;
+	for (auto inited : constructor->type) {
+		if (inited.first == "return") {
+			continue;
+		}
+		if (std::find(constructor->args.begin(), constructor->args.end(), inited.first) != constructor->args.end()) {
+			continue;
+		}
+		output << "\tobj_" << inited.second << " " << inited.first << ";" << std::endl;
+	}
+	for (AST::Node *stmt : constructor->stmts) {
+		generateStatement(output, stmt, constructor, name);
+	}
+	output << "\treturn this;" << std::endl << "}" << indent;
 }
 
 void CodeGenerator::generateExterns(std::ostream &output) {
@@ -189,36 +382,7 @@ void CodeGenerator::generateMethods(std::ostream &output) {
 		}
 
 		// time to print method definitions!
-		// begin with the constructor...
-		output << "// " << name << "'s constructor method definition" << std::endl;
-		output << "obj_" << name << " new_" << name << "(";
-		i = 0;
-		for (auto constructArg : constructor->argtype) {
-			if (constructArg.second == name) {
-				continue;
-			}
-			if (i == 0) {
-				output << "obj_" << constructArg.second << " " << constructArg.first;
-				++i;
-			} else {
-				output << ", obj_" << constructArg.second << " " << constructArg.first;
-			}
-		}
-		output << ") {" << std::endl;
-		output << "\tobj_" << name << " new_thing = (obj_" << name <<
-		") malloc(sizeof(struct obj_" << name << "_struct));" << std::endl;
-		output << "\tnew_thing->clazz" << " = " << "the_class_" << name << ";" << std::endl;
-		// for (AST::Node *stmt : constructor->stmts) {
-		// 	generateStatement(output, stmt, name);
-		// }
-		for (auto field : currentClass->instanceVarType) {
-			if (field.first != "this") {
-				output << "\tnew_thing->" << field.first << " = " << field.first << ";" << std::endl;
-			} 
-		}
-		output << "\treturn new_thing;" << std::endl << "}" << indent;
-
-		// ... now the rest of the methods
+		// ... the rest of the methods, at least
 		output << "// " << name << "'s other method definitions" << std::endl;
 		for (auto method : currentClass->methods) {
 			std::string returnType = method->type["return"];
@@ -244,7 +408,7 @@ void CodeGenerator::generateMethods(std::ostream &output) {
 					output << ", obj_" << arg.second << " " << arg.first;
 				}
 			}
-			output << ") {" << std::endl;
+			output << ")" << " {" << std::endl;
 			for (auto inited : method->type) {
 				if (inited.first == "return") {
 					continue;
@@ -256,6 +420,9 @@ void CodeGenerator::generateMethods(std::ostream &output) {
 			}
 			for (AST::Node *stmt : method->stmts) {
 				generateStatement(output, stmt, method, name);
+			}
+			if (method->type["return"] == "Nothing") {
+				output << "\treturn (obj_Nothing) (nothing);" << std::endl;
 			}
 			output << "}" << indent;
 		}
@@ -333,6 +500,37 @@ std::string CodeGenerator::generateStatement(std::ostream &output, AST::Node *st
 		name = currentClass->name;
 	}
 
+	if (nodeType == WHILE) {
+		AST::Node *cond = stmt->get(COND)->rawChildren[0];
+
+		std::string testcondString = "test_cond" + std::to_string(this->tempno);
+		std::string loopagainString = "loop_again" + std::to_string(this->tempno);
+		std::string endwhileString = "end_while" + std::to_string(this->tempno);
+		std::string halfwayString = "halfway" + std::to_string(this->tempno);
+
+		output << "\tgoto " << testcondString << ";" << std::endl;
+		output << "\t" << loopagainString << ": ; // Null statement" << std::endl; 
+
+		AST::Node *while_stmts = stmt->get(BLOCK, STATEMENTS);
+		for (AST::Node *while_stmt : while_stmts->rawChildren) {
+			generateStatement(output, while_stmt, whichMethod, name);
+		}
+
+		output << "\t" << testcondString << ": ; // Null statement" << std::endl;
+		output << "\tgoto " << halfwayString << ";" << std::endl;
+		output << "\t" << halfwayString << ": ; // Null statement" << std::endl;
+
+		if (cond != NULL) {
+			std::string condStatement = generateStatement(output, cond, whichMethod, name);
+			output << "\tif (lit_true == " << condStatement << ") { goto " << loopagainString << "; }" << std::endl;
+			output << "\tgoto " << endwhileString << ";" << std::endl;
+		}
+		output << "\t" << endwhileString << ": ; // Null statement" << std::endl;
+
+		++this->tempno;
+		return "";
+	}
+
 	if (nodeType == IF) {
 		AST::Node *cond = stmt->get(COND)->rawChildren[0];
 		if (cond != NULL) {
@@ -368,6 +566,7 @@ std::string CodeGenerator::generateStatement(std::ostream &output, AST::Node *st
 
 		output << "\t" << endifString << ": ; // Null statement" << std::endl;
 
+		++this->tempno;
 		return "";
 	}
 
@@ -440,9 +639,7 @@ std::string CodeGenerator::generateStatement(std::ostream &output, AST::Node *st
 
 					output << "\tthis->" << instanceVar << " = " << rhs << ";" << std::endl;
 
-					std::string retVal = "this->" + instanceVar;
-
-					return retVal;
+					return "";
 				}
 			} 
 		}
@@ -496,6 +693,7 @@ std::string CodeGenerator::generateStatement(std::ostream &output, AST::Node *st
 				if (tbd.first == "return") {
 					std::string returnedTypeCast = "(obj_" + tbd.second + ")";
 					output << "\treturn " << returnedTypeCast << " (" << returned << ");" << std::endl;
+					return "";
 				}
 			}
 		}
@@ -505,12 +703,12 @@ std::string CodeGenerator::generateStatement(std::ostream &output, AST::Node *st
 		if (stmt->get(IDENT) != NULL) { 
 			std::string ident = stmt->get(IDENT)->name;
 			if (ident == "this") {
-				return "";
+				return "this";
 			} else if (ident == "true" || ident == "false") { 
 				if (ident == "true") return "lit_true";
 				else return "lit_false";
 			} else {
-				return "";
+				return ident;
 			}
 		} else {
 			// if it doesn't go straight to an ident, grab whatever it's loading (most likely a dot)

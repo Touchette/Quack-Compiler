@@ -1,16 +1,23 @@
 class Hand() {
-      /* Nothing to see here */
-}
+      this.x = 54;
 
-
-class LeftHand(x: Int) extends Hand {
-      this.x  = x;
       def foo(): Int { return 42; }
 }
 
+class LeftHand(x: Int) extends Hand {
+      this.x  = x;
+      this.y = 53;
+      this.z = 123;
+      def foo(): Int { return 42; }
+      def bar() : Int { return 50; }
+      def zop() : Int { return 60; }
+}
+
 class RightHand(x: Int) extends Hand {
+      this.y = 43;
       this.x  = x; 
       def foo() : Int { return 42; }
+      def bar() : Int { return 50; }
 }
 
 class Bot(x: Int, y: Int) {

@@ -17,6 +17,9 @@ class CodeGenerator {
 		std::map<std::string, Qclass*> classes;
 		Typechecker *tc;
 		std::vector<std::string> primitives = {};
+		std::vector<std::string> printedClasses;
+		std::map<std::string, std::vector<Qmethod *>> methodGenerationOrder;
+		std::map<std::string, std::vector<std::string>> fieldGenerationOrder;
 
 		// indent for codegen
         std::string indent = "\n\n";
@@ -39,17 +42,20 @@ class CodeGenerator {
         /* Methods */
         /* ======= */
 
-		// sample beginning code generation
+		/* ==== main code generation methods ==== */
 		bool generate();
         bool generateClasses(std::ostream &output);
         bool generateMain(std::ostream &output);
 
-        // helper functions for the main code generation
+        /* ==== helper functions for the main code generation ==== */
         bool checkPrimitive(std::string name);
         void generateTypedefs(std::ostream &output);
         // helper functions for generateClasses
         void generateForwardDecls(std::ostream &output);
 		void generateStructs(std::ostream &output);
+		void generateStruct(std::ostream &output, Qclass *whichClass); // helper function for generateStructs
+		void generateConstructor(std::ostream &output, Qclass *whichClass); // helper function for generateStructs
+		void methodOrderer(std::ostream &output, std::vector<Qmethod *> whereToLook, Qclass *currentClass);
 		void generateExterns(std::ostream &output);
 		void generateMethods(std::ostream &output);
 		void generateSingletons(std::ostream &output);
