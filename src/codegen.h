@@ -20,6 +20,8 @@ class CodeGenerator {
 		std::vector<std::string> printedClasses;
 		std::map<std::string, std::vector<Qmethod *>> methodGenerationOrder;
 		std::map<std::string, std::vector<std::string>> fieldGenerationOrder;
+		std::map<std::string, std::vector<std::string>> classInherited;
+		std::map<std::string, std::string> classNameByMethod;
 
 		// indent for codegen
         std::string indent = "\n\n";
@@ -28,7 +30,8 @@ class CodeGenerator {
         std::string filename;
 
         // variable for counting temps, variable for printing arguments correctly
-        int tempno = 1;
+        int labelno = 0;
+        int tempno = 0;
         int i = 0;
 
         /* ========================== */

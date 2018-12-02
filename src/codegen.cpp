@@ -215,6 +215,7 @@ void CodeGenerator::generateStruct(std::ostream &output, Qclass *whichClass) {
 
 	// output the "struct class_CLASSNAME_struct"
 	output << "struct class_" << name << "_struct {" << std::endl;
+	output << "\tclass_Obj super_;" << std::endl;
 	output << "\t// Method Table - constructor comes first" << std::endl;
 
 	// print the constructor, which is a special method not inside "methods" vector
@@ -293,6 +294,7 @@ void CodeGenerator::methodOrderer(std::ostream &output, std::vector<Qmethod *> w
 			printedMethods.push_back(superMethod->name);
 			currentClass->methods.push_back(superMethod);
 			methodGenerationOrder[name].push_back(superMethod);
+			classInherited[name].push_back(superMethod->name);
 		}
 	}
 
@@ -388,6 +390,12 @@ void CodeGenerator::generateMethods(std::ostream &output) {
 			std::string returnType = method->type["return"];
 			std::string methodName = method->name;
 
+			auto it = std::find(classInherited[name].begin(), classInherited[name].end(), method->name);
+
+			if (it != classInherited[name].end()) {
+				continue;
+			}
+
 			output << "obj_" << returnType << " " << name << "_method_" << methodName << "(";
 			i = 0;
 
@@ -422,7 +430,7 @@ void CodeGenerator::generateMethods(std::ostream &output) {
 				generateStatement(output, stmt, method, name);
 			}
 			if (method->type["return"] == "Nothing") {
-				output << "\treturn (obj_Nothing) (nothing);" << std::endl;
+				output << "\treturn (obj_Nothing) (none);" << std::endl;
 			}
 			output << "}" << indent;
 		}
@@ -442,17 +450,54 @@ void CodeGenerator::generateSingletons(std::ostream &output) {
 		// printing out the singleton class 
 		output << "// The " << name << " class (singleton version)" << std::endl;
 		output << "struct class_" << name << "_struct the_class_" << name << "_struct = {" << std::endl;
+		output << "\t(class_Obj) &the_class_" << currentClass->super << "_struct," << std::endl;
 
 		// print the singleton's constructor
 		output << "\tnew_" << name << ", // constructor" << std::endl;
 
+		std::vector<std::string> alreadyPrinted;
 		// print the rest of the singleton's methods
-		for (auto method : currentClass->methods) {
-			output << "\t" << name << "_method_" << method->name << "," << std::endl;
+		for (auto method : this->methodGenerationOrder[name]) {
+			if (checkPrimitive(currentClass->super)) {
+				for (auto superMethod : this->classes[currentClass->super]->methods) {
+					if (superMethod->name == method->name) {
+						if (std::find(classInherited[name].begin(), classInherited[name].end(), method->name) != classInherited[name].end()) {
+							output << "\t" << currentClass->super << "_method_" << method->name << ",";
+							output << " // inherited from " << currentClass->super << std::endl;
+							alreadyPrinted.push_back(method->name);
+							this->classNameByMethod[method->name] = currentClass->super;
+						}
+					} else {
+						if (std::find(classInherited[name].begin(), classInherited[name].end(), method->name) != classInherited[name].end()) {
+							output << "";
+						} else if (std::find(alreadyPrinted.begin(), alreadyPrinted.end(), method->name) == alreadyPrinted.end()) {
+							output << "\t" << name << "_method_" << method->name << "," << std::endl;
+							alreadyPrinted.push_back(method->name);
+						}
+					}
+				}
+			} else {
+				for (auto superMethod : this->classes[currentClass->super]->methods) {
+					if (superMethod->name == method->name) {
+						if (std::find(classInherited[name].begin(), classInherited[name].end(), method->name) != classInherited[name].end()) {
+							output << "\t" << this->classNameByMethod[method->name] << "_method_" << method->name << ",";
+							output << " // inherited from " << this->classNameByMethod[method->name] << std::endl;
+							alreadyPrinted.push_back(method->name);
+						}
+					} else {
+						if (std::find(classInherited[name].begin(), classInherited[name].end(), method->name) != classInherited[name].end()) {
+							output << "";
+						} else if (std::find(alreadyPrinted.begin(), alreadyPrinted.end(), method->name) == alreadyPrinted.end()) {
+							output << "\t" << name << "_method_" << method->name << "," << std::endl;
+							alreadyPrinted.push_back(method->name);
+						}
+					}
+				}
+			}
 		}
 		output << "};" << indent;
 
-		output << "class_" << name << " the_class_" << name << " = " << "&the_class_" << name << "_struct;";
+		output << "class_" << name << " the_class_" << name << " = " << "&the_class_" << name << "_struct;" << std::endl;
 	}
 	output << indent;
 	output << "// -~-~-~-~- Singletons End -~-~-~-~-" << indent;
@@ -549,7 +594,6 @@ std::string CodeGenerator::generateStatement(std::ostream &output, AST::Node *st
 		AST::Node *true_stmts = stmt->get(BLOCK, TRUE_STATEMENTS);
 		for (AST::Node *true_stmt : true_stmts->rawChildren) {
 			std::string generatedTrue = generateStatement(output, true_stmt, whichMethod, name);
-			output << "\t" << generatedTrue << std::endl;
 		}
 		output << "\tgoto " << endifString << ";" << std::endl;
 	
@@ -560,7 +604,6 @@ std::string CodeGenerator::generateStatement(std::ostream &output, AST::Node *st
 		AST::Node *false_stmts = stmt->get(BLOCK, FALSE_STATEMENTS);
 		for (AST::Node *false_stmt : false_stmts->rawChildren) {
 			std::string generatedFalse = generateStatement(output, false_stmt, whichMethod, name);
-			output << "\t" << generatedFalse << std::endl;
 		}
 		output << "\tgoto " << endifString << ";" << std::endl;
 
@@ -624,6 +667,159 @@ std::string CodeGenerator::generateStatement(std::ostream &output, AST::Node *st
 				return returned;
 			}
 		}
+	}
+
+	if (nodeType == CALL) { // a call always has 3 children
+		// if (stmt->skip) return lhsType; // we dont want to error check again
+		AST::Node *lhs = stmt->rawChildren[0]; // left hand side can be any type of node
+		std::string lhsStmt = generateStatement(output, lhs, whichMethod, name);
+		bool z = false;
+		std::string returnType = this->tc->typeInferStmt(whichMethod, stmt, z, z);
+		std::string lhsType = this->tc->typeInferStmt(whichMethod, lhs, z, z);
+		std::string methodName = stmt->rawChildren[1]->name; // center node is always the ident corresponding to method name
+
+		Qclass *qclass;
+		Qclass *qclass_temp;
+		Qmethod *calledMethod;
+
+		bool foundMethod = false;
+		qclass = this->classes[lhsType];
+		qclass_temp = qclass;
+		find: // keep jumping to this label if we haven't seen the method yet
+			//OUT << "current class we're iterating over is " << qclass_temp->name << END;
+			for (Qmethod *m : qclass_temp->methods) {
+				//OUT << "	mname is " << m->name << END;
+				if (m->name == methodName) {
+					foundMethod = true;
+					calledMethod = m;
+					break;
+				}
+			}
+
+		if (!foundMethod) { // if we haven't seen the method yet, iterate through the supers
+			if (qclass_temp->name != "Obj") { // we're at the top of the tree, stop looking
+				qclass_temp = this->classes[qclass_temp->super];
+				goto find;
+			}
+		}
+
+		if (methodName == "NOT") {
+				output << "\tobj_Boolean tempBool" << this->tempno << " = !" << lhsStmt << ";" << std::endl;
+				std::string retVal = "tempBool" + std::to_string(this->tempno);
+				++this->tempno;
+				return retVal;
+		}
+		if (methodName == "AND" || methodName == "OR") {
+			AST::Node *actual_args_container = stmt->get(ACTUAL_ARGS);
+			if (actual_args_container != NULL) {
+				std::vector<AST::Node *> actual_args = actual_args_container->getAll(METHOD_ARG);
+				if (actual_args.size() == 1) {
+					AST::Node *real_arg = actual_args.front()->getBySubtype(METHOD_ARG);
+					if (methodName == "AND") {
+						// begin and
+						output << "\t// and statement beginning!" << std::endl;
+
+						// returned boolean
+						output << "\tobj_Boolean tempBool" << this->labelno << " = lit_false;" << std::endl;
+
+						// first side
+						output << "\tif (lit_true == " << lhsStmt << ") { goto and_HALFWAY" << this->labelno << "; }" << std::endl;
+						output << "\tgoto and_END" << this->labelno << ";" << std::endl;
+						output << "\tand_HALFWAY" << this->labelno << ": ; // Null statement" << std::endl;
+						
+						// second side
+						std::string argStmt = generateStatement(output, real_arg, whichMethod, name);
+						output << "\tif (lit_true == " << argStmt << ") { goto and_TRUE" << this->labelno << "; }" << std::endl;
+						output << "\tgoto and_END" << this->labelno << ";" << std::endl;
+
+						// get the true version
+						output << "\tand_TRUE" << this->labelno << ": ; // Null statement" << std::endl;
+						output << "\ttempBool" << this->labelno << " = lit_true;" << std::endl;
+						// the end, wasn't true
+						output << "\tand_END" << this->labelno << ": ; // Null statement" << std::endl;
+
+						// end and
+						output << "\t// and statement done!" << std::endl;
+
+						std::string retVal = "tempBool" + std::to_string(this->labelno);
+						++this->labelno;
+						return retVal;
+					} else {
+						// begin or
+						output << "\t// or statement beginning!" << std::endl;
+
+						// returned boolean
+						output << "\tobj_Boolean tempBool" << this->labelno << " = lit_false;" << std::endl;
+
+						// first side
+						output << "\tif (lit_true == " << lhsStmt << ") { goto or_TRUE" << this->labelno << "; }" << std::endl;
+						output << "\tgoto or_END" << this->labelno << ";" << std::endl;
+						output << "\tor_HALFWAY" << this->labelno << ": ; // Null statement" << std::endl;
+						
+						// second side
+						std::string argStmt = generateStatement(output, real_arg, whichMethod, name);
+						output << "\tif (lit_true == " << argStmt << ") { goto or_TRUE" << this->labelno << "; }" << std::endl;
+						output << "\tgoto or_END" << this->labelno << ";" << std::endl;
+
+						// get the true version
+						output << "\tor_TRUE" << this->labelno << ": ; // Null statement" << std::endl;
+						output << "\ttempBool" << this->labelno << " = lit_true;" << std::endl;
+						// the end, wasn't true
+						output << "\tor_END" << this->labelno << ": ; // Null statement" << std::endl;
+
+						// end and
+						output << "\t// and statement done!" << std::endl;
+
+						std::string retVal = "tempBool" + std::to_string(this->labelno);
+						++this->labelno;
+						return retVal;
+					}
+				}
+			}
+		}
+
+		// std::cerr << whichMethod->argtype["other"] << std::endl;
+		std::vector<std::string> argNames;
+
+		// make sure all our args line up
+		AST::Node *actual_args_container = stmt->get(ACTUAL_ARGS);
+		if (actual_args_container != NULL) {
+			std::vector<AST::Node *> actual_args = actual_args_container->getAll(METHOD_ARG);
+			if (!actual_args.empty()) {
+				for (AST::Node *arg : actual_args) {
+					AST::Node *real_arg = arg->getBySubtype(METHOD_ARG); // the actual arg node is inside of the "METHOD_ARG" node
+					std::string argName = generateStatement(output, real_arg, whichMethod, name);
+					argNames.push_back(argName);
+				}
+			} 
+		}
+
+		std::string retVal;
+
+		output << "\tobj_" << returnType << " tempResult" << this->tempno << " = " << lhsStmt <<
+		"->clazz->" << methodName << "(";
+		retVal = "tempResult" + std::to_string(this->tempno);
+		++this->tempno;
+
+
+		int i = 0;
+		if (argNames.size() == 0) {
+			output << "(obj_" << calledMethod->clazz->name << ") "<< lhsStmt;
+		} else {
+			output << "(obj_" << calledMethod->clazz->name << ") "<< lhsStmt << ", ";
+		}
+		for (auto arg : argNames) {
+			if (i == 0) {
+				output << "(obj_" << calledMethod->argtype[calledMethod->args[i]] << ") " << arg;
+				++i;
+			} else {
+				output << ", (obj_" << calledMethod->argtype[calledMethod->args[i]] << ") " << arg;
+				++i;
+			}
+		}
+
+		output << ");" << std::endl;
+		return retVal;
 	}
 
 	if (nodeType == ASSIGN) {

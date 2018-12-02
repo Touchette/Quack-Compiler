@@ -4,8 +4,9 @@
  class Pt(x: Int, y: Int) {
      this.x = x;
      this.y = y;
-     if (true) {
-         z = 5;
+     z = true;
+     if (z and true) {
+         w = 5;
      }
 
      /* Note type of this.x and this.y is
@@ -15,6 +16,7 @@
       */
 
      def _get_x(): Int {
+     	 z = 5;
      	 return this.x; 
      } 
 
@@ -24,18 +26,18 @@
 
      /* Mutator: Evaluate for effect */
      def translate(dx: Int, dy: Int): Nothing {
-     	 //this.x = this.x + dx;
-	 	 //this.y = this.y + dy;
+     	 this.x = this.x + dx;
+	 	 this.y = this.y + dy;
      }
 
      /* More functional style: Evaluate for value */
      def PLUS(other: Pt): Pt {
-     	 return Pt(4, 5/*this.x + other.x, this.y + other.y*/); 
+     	 return Pt(this.x + other.x, this.y + other.y); 
      }
 
      def STR() : String {
-         return "a"/*("(" + this.x.STR() + ", " + this.y.STR() + ")")*/;
+         return ("(" + this.x.STR() + ", " + this.y.STR() + ")");
      }
 }
 
-//Pt(13,42).PRINT(); 
+Pt(13, 42).PRINT(); 

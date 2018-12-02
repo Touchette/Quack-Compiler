@@ -1,32 +1,23 @@
 class Hand() {
-      this.x = 54;
-
-      def foo(): Int { return 42; }
+      /* Nothing to see here */
 }
 
+
 class LeftHand(x: Int) extends Hand {
-      this.x  = x;
-      this.y = 53;
-      this.z = 123;
+      this.x = x;
       def foo(): Int { return 42; }
-      def bar() : Int { return 50; }
-      def zop() : Int { return 60; }
 }
 
 class RightHand(x: Int) extends Hand {
-      this.y = 43;
-      this.x  = x; 
-      def foo() : Int { return 42; }
-      def bar() : Int { return 50; }
+      this.x = x; 
+      def foo(): Int { return 42; }
 }
 
-class Bot(x: Int, y: Int) {
-   if (true) {
-      this.hand : Hand = LeftHand(3);
+class Bot(x: Int) {
+   if x > 0 {
+      this.hand = LeftHand(3);
    } else {
-      this.hand : Hand = RightHand(7);
+      this.hand = RightHand(7);
    }
-   //this.answer = this.hand.foo();
-   //this.answer = this.hand.foo(); 
-   //this.answer = this.hand.foo(); 
+   this.answer = this.hand.foo(); 
 }

@@ -67,13 +67,17 @@ int main(int argc, char *argv[]) {
     std::string filename;
     bool json = false;
 
-    // Get our filename arg and optional json flag
+    // Get our filename arg and optional flags
     for (int i = 1; i < argc; i++) {
-        if (std::strcmp(argv[i], "--json=true") == 0) {
+        if (std::strcmp(argv[i], "-json") == 0) {
             json = true;
             report::setDebug(false);
-        } else if (std::strcmp(argv[i], "--no-debug") == 0) {
-            report::setDebug(false);
+        } else if (std::strcmp(argv[i], "-debug") == 0) {
+            report::setDebug(true);
+        } else if (std::strcmp(argv[i], "-astonly") == 0) {
+            report::setGenerateImage(true);
+        } else if (std::strcmp(argv[i], "-verbose") == 0) {
+            report::setVerbose(true);
         } else {
             filename = std::string(argv[i]);
         }
@@ -117,6 +121,7 @@ int main(int argc, char *argv[]) {
         if (programValid) report::gnote("complete.", TYPECHECKER);
         // if programValid is false it should have bailed in the type checker
 
+
         report::ynote("starting...", CODEGENERATION);
         CodeGenerator codeGenerator(&typeChecker, std::string("QuackOutput.c"));
         bool codeGenerated = codeGenerator.generate();
@@ -125,13 +130,12 @@ int main(int argc, char *argv[]) {
         if (codeGenerated) {
             report::gnote("generation of QuackOutput.c complete.", CODEGENERATION);
             report::ynote("starting GCC invocation...", CODEGENERATION);
-            system("./invoke_gcc.sh");
+            system("scripts/invoke_gcc.sh");
             report::gnote("complete. Your outputted program is named QuackOutput!", CODEGENERATION);
         }
         // if codeGenerated is false it should have bailed in the code generator
 
         exit(0);
-
     } else {
         // either the parse has failed, or no AST was built.
         report::rnote("compilation failed - abstract syntax tree could not be generated!", PARSER);
