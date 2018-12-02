@@ -538,11 +538,44 @@ bool CodeGenerator::generateMain(std::ostream &output) {
 
 std::string CodeGenerator::generateStatement(std::ostream &output, AST::Node *stmt, Qmethod *whichMethod, std::string whichClass) {
 	Type nodeType = stmt->type;
+	//std::cerr << "the nodeType is : " << typeString(nodeType) << std::endl;
 	std::string name = whichClass;
 	Qclass *currentClass;
 	if (whichClass != "main") {
 		Qclass *currentClass = classes[whichClass];
 		name = currentClass->name;
+	}
+
+	if (nodeType == TYPECASE) {
+		AST::Node *var = stmt->get(LOAD);
+		std::string typeSwitch = generateStatement(output, var, whichMethod, name);
+		bool z = false;
+		std::string switchType = this->tc->typeInferStmt(whichMethod, var, z, z);
+		
+		std::string tempClass = "(class_" + switchType + ") " + typeSwitch + "->clazz";
+
+		std::string temp = "tempClass" + std::to_string(this->tempno);
+		output << "\tclass_" << switchType << " " << temp << " = " << tempClass << ";" << std::endl;
+
+		AST::Node *type_alts_container = stmt->get(TYPE_ALTERNATIVES);
+		std::vector<AST::Node *> type_alts = type_alts_container->getAll(TYPE_ALTERNATIVE);
+
+		output << "\twhile (" << temp << ") {" << std::endl;
+
+		for (AST::Node *type_alt : type_alts) {
+			AST::Node *ident = type_alt->getBySubtype(VAR_IDENT);
+			AST::Node *ident_type = type_alt->getBySubtype(TYPE_IDENT);
+			AST::Node *type_stmts = type_alt->get(BLOCK, STATEMENTS);
+			output << "\tif (" << temp << " == (class_" << switchType << ") the_class_" << ident_type->name << ") {" << std::endl;
+			output << "\t" << ident->name << " = " << "(obj_" << ident_type->name << ") " << typeSwitch << ";" << std::endl;
+			for (AST::Node *type_stmt : type_stmts->rawChildren) {
+				generateStatement(output, type_stmt, whichMethod, name);
+			}
+			output << "\tbreak;" << std::endl << "\t}" << std::endl;
+		}
+		output << "\telse {" << std::endl << "\t" << temp << " = " << temp << "->super;" << std::endl << "\t}" << std::endl;
+		output << "\t}" << std::endl;
+		return "";
 	}
 
 	if (nodeType == WHILE) {
@@ -556,6 +589,7 @@ std::string CodeGenerator::generateStatement(std::ostream &output, AST::Node *st
 		output << "\tgoto " << testcondString << ";" << std::endl;
 		output << "\t" << loopagainString << ": ; // Null statement" << std::endl; 
 
+		++this->tempno;
 		AST::Node *while_stmts = stmt->get(BLOCK, STATEMENTS);
 		for (AST::Node *while_stmt : while_stmts->rawChildren) {
 			generateStatement(output, while_stmt, whichMethod, name);
@@ -572,7 +606,6 @@ std::string CodeGenerator::generateStatement(std::ostream &output, AST::Node *st
 		}
 		output << "\t" << endwhileString << ": ; // Null statement" << std::endl;
 
-		++this->tempno;
 		return "";
 	}
 
@@ -591,6 +624,7 @@ std::string CodeGenerator::generateStatement(std::ostream &output, AST::Node *st
 
 		output << "\t" << ifString << ": ; // Null statement" << std::endl;
 
+		++this->tempno;
 		AST::Node *true_stmts = stmt->get(BLOCK, TRUE_STATEMENTS);
 		for (AST::Node *true_stmt : true_stmts->rawChildren) {
 			std::string generatedTrue = generateStatement(output, true_stmt, whichMethod, name);
@@ -609,7 +643,6 @@ std::string CodeGenerator::generateStatement(std::ostream &output, AST::Node *st
 
 		output << "\t" << endifString << ": ; // Null statement" << std::endl;
 
-		++this->tempno;
 		return "";
 	}
 
@@ -859,24 +892,21 @@ std::string CodeGenerator::generateStatement(std::ostream &output, AST::Node *st
 		AST::Node *load = stmt->get(LOAD);
 		if (load != NULL) {
 			// we have a "this.x" somewhere in a method, make appropriate checks
-			std::string lhs = load->get(IDENT)->name;
+			std::string lhs = generateStatement(output, stmt->rawChildren[0], whichMethod, name);
 			if (lhs == "this") {
 				std::string instanceVar = stmt->get(IDENT)->name;
 				std::string completeDot = (lhs + "->" + instanceVar);
-				
 				return completeDot;
 			} else { // we have an "x.y" somewhere in a method
 				std::string instanceVar = stmt->getBySubtype(R_EXPR)->name;
 				std::string completeDot = (lhs + "->" + instanceVar);
-				
 				return completeDot;
 			}
 		} else { // if the lhs of the DOT isn't a load, we have to infer its type generically
 			std::string lhsTemp = generateStatement(output, stmt->rawChildren[0], whichMethod, name);
 			std::string instanceVar = stmt->getBySubtype(R_EXPR)->name;
 
-			std::string completeDot = (lhsTemp + "." + instanceVar);
-
+			std::string completeDot = (lhsTemp + "->" + instanceVar);
 			return completeDot;
 		}
 	}
@@ -892,6 +922,9 @@ std::string CodeGenerator::generateStatement(std::ostream &output, AST::Node *st
 					return "";
 				}
 			}
+		} else {
+			output << "\treturn " << "(obj_Obj) none;" << std::endl;
+			return "";
 		}
 	}
 
